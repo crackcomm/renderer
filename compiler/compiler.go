@@ -292,15 +292,19 @@ func (c *compiler) Render(ctx context.Context, cmp *components.Component) (res *
 	// Render parent component
 	res, err = c.Render(ctx, &components.Component{
 		Name:    extends,
-		Context: map[string]interface{}{"children": body},
+		Context: map[string]interface{}{"children": pongo2.AsSafeValue(body)},
 	})
 	if err != nil {
 		return
 	}
 
 	// Add links to parent component
-	for link, target := range links {
-		res.AddLink(link, target)
+	if res.Links == nil {
+		res.Links = links
+	} else {
+		for link, target := range links {
+			res.Links[link] = target
+		}
 	}
 
 	return
