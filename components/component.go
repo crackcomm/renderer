@@ -13,9 +13,11 @@ type Component struct {
 	Extends string `json:"extends,omitempty"`
 
 	// Styles - List of relative paths or URLs to CSS files.
+	// When local files will be read and parsed as templates.
 	Styles []string `json:"styles,omitempty"`
 
 	// Scripts - List of relative paths or URLs to JS files.
+	// When local files will be read and parsed as templates.
 	Scripts []string `json:"scripts,omitempty"`
 
 	// Require - Components required by this component.
