@@ -32,7 +32,7 @@ type Component struct {
 // Rendered - Rendered component.
 type Rendered struct {
 	// Body - Body of the rendered component.
-	Body []byte
+	Body string
 
 	// Links - List of routes(/links) pointing to files.
 	Links map[string]string
