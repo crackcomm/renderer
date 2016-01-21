@@ -71,6 +71,10 @@ type compiler struct {
 type compiledComponent struct {
 	*components.Component
 	*pongo2.Template
+
+	styles  []*pongoOrURL
+	scripts []*pongoOrURL
+
 	withTemplates map[string]*pongo2.Template
 }
 
@@ -157,12 +161,6 @@ func (c *compiler) compile(ctx context.Context, cmp *components.Component) (res 
 	// Component main filename
 	fname := resolvePath(ctx, cmp.Main)
 
-	// Get file absolute path
-	fname, err = filepath.Abs(fname)
-	if err != nil {
-		return
-	}
-
 	// Check if filepath is allowed
 	if !pathInList(fname, c.opts.dirs) {
 		return nil, fmt.Errorf("template path %q is not allowed", cmp.Main)
@@ -180,6 +178,19 @@ func (c *compiler) compile(ctx context.Context, cmp *components.Component) (res 
 	if err != nil {
 		return
 	}
+
+	// Compile scripts templates
+	res.scripts, err = newListPongoOrURL(ctx, c.opts.dirs, cmp.Scripts)
+	if err != nil {
+		return
+	}
+
+	// Compile styles templates
+	res.styles, err = newListPongoOrURL(ctx, c.opts.dirs, cmp.Styles)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
@@ -252,7 +263,6 @@ func (c *compiler) Render(ctx context.Context, cmp *components.Component) (res *
 	res = new(components.Rendered)
 
 	// 3. Execute `compiled` (base) `required` components.
-	var links map[string]string
 	for key, required := range compiled.Component.Require {
 		r, err := c.Render(ctx, required)
 		if err != nil {
@@ -260,17 +270,30 @@ func (c *compiler) Render(ctx context.Context, cmp *components.Component) (res *
 		}
 
 		for link, target := range r.Links {
-			if links == nil {
-				links = make(map[string]string)
+			if res.Links == nil {
+				res.Links = make(map[string]string)
 			}
-			links[link] = target
+			res.Links[link] = target
 		}
+
+		res.Styles = append(res.Styles, r.Styles...)
+		res.Scripts = append(res.Scripts, r.Scripts...)
 
 		tempctx[key] = r.Body
 	}
 
+	// Append compiled scripts and styles to response
+	res.Scripts, err = executePongoOrURL(tempctx, compiled.scripts)
+	if err != nil {
+		return
+	}
+	res.Styles, err = executePongoOrURL(tempctx, compiled.styles)
+	if err != nil {
+		return
+	}
+
 	// 4. Render template
-	body, err := compiled.Template.Execute(pongo2.Context(tempctx))
+	res.Body, err = compiled.Template.Execute(pongo2.Context(tempctx))
 	if err != nil {
 		return
 	}
@@ -283,29 +306,55 @@ func (c *compiler) Render(ctx context.Context, cmp *components.Component) (res *
 		extends = cmp.Extends
 	}
 	if extends == "" {
-		return &components.Rendered{
-			Body:  body,
-			Links: links,
-		}, nil
+		finishRender(res)
+		return
 	}
 
+	// Set rendered component as `children` in context
+	// for the parent component
+	tempctx["children"] = pongo2.AsSafeValue(res.Body)
+
 	// Render parent component
-	res, err = c.Render(ctx, &components.Component{
+	e, err := c.Render(ctx, &components.Component{
 		Name:    extends,
-		Context: map[string]interface{}{"children": pongo2.AsSafeValue(body)},
+		Context: tempctx,
 	})
 	if err != nil {
 		return
 	}
 
 	// Add links to parent component
-	if res.Links == nil {
-		res.Links = links
+	if e.Links == nil {
+		e.Links = res.Links
 	} else {
-		for link, target := range links {
-			res.Links[link] = target
+		for link, target := range res.Links {
+			e.Links[link] = target
 		}
 	}
 
+	e.Styles = append(e.Styles, res.Styles...)
+	e.Scripts = append(e.Scripts, res.Scripts...)
+	finishRender(e)
+
+	return e, nil
+}
+
+func finishRender(c *components.Rendered) {
+	c.Styles = removeDuplicates(c.Styles)
+	c.Scripts = removeDuplicates(c.Scripts)
+	c.Body = replaceMultipleWhitespace(c.Body)
+}
+
+func removeDuplicates(elements []string) (result []string) {
+	if len(elements) == 0 {
+		return elements
+	}
+	done := make(map[string]bool)
+	for v := range elements {
+		if !done[elements[v]] {
+			done[elements[v]] = true
+			result = append(result, elements[v])
+		}
+	}
 	return
 }

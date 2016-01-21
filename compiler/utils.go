@@ -13,10 +13,69 @@ import (
 	"golang.org/x/net/context"
 )
 
+type pongoOrURL struct {
+	template *pongo2.Template
+	url      string
+}
+
+func executePongoOrURL(ctx pongo2.Context, input []*pongoOrURL) (res []string, err error) {
+	for _, t := range input {
+		body, err := t.execute(ctx)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, body)
+	}
+	return
+}
+
+func newListPongoOrURL(ctx context.Context, allowedDirs []string, list []string) (res []*pongoOrURL, err error) {
+	for _, fname := range list {
+		r, err := newPongoOrURL(ctx, allowedDirs, fname)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, r)
+	}
+	return
+}
+
+func newPongoOrURL(ctx context.Context, allowedDirs []string, v string) (*pongoOrURL, error) {
+	if strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://") {
+		return &pongoOrURL{url: v}, nil
+	}
+	path := resolvePath(ctx, v)
+	if !pathInList(path, allowedDirs) {
+		return nil, fmt.Errorf("template path %q is not allowed", v)
+	}
+	template, err := pongo2.FromFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return &pongoOrURL{template: template}, nil
+}
+
+func (t *pongoOrURL) execute(ctx pongo2.Context) (res string, err error) {
+	if t.template == nil {
+		return t.url, nil
+	}
+	res, err = t.template.Execute(ctx)
+	if err != nil {
+		return
+	}
+	res = replaceMultipleWhitespace(res)
+	return
+}
+
 func globComponents(dir string) (res map[string]*components.Component, err error) {
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, ferr error) error {
 		if ferr != nil || info == nil || info.IsDir() {
 			return ferr
+		}
+
+		path, err = filepath.Abs(path)
+		if err != nil {
+			return err
 		}
 
 		dirname, fname := filepath.Split(path)
@@ -80,4 +139,96 @@ func pathInList(path string, list []string) bool {
 		}
 	}
 	return false
+}
+
+//
+// below some code
+// imported from "github.com/tdewolff/parse"
+//
+
+var whitespaceTable = [256]bool{
+	// ASCII
+	false, false, false, false, false, false, false, false,
+	false, true, true, false, true, true, false, false, // tab, new line, form feed, carriage return
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+
+	true, false, false, false, false, false, false, false, // space
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+
+	// non-ASCII
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false,
+}
+
+// isWhitespace returns true for space, \n, \r, \t, \f.
+func isWhitespace(c byte) bool {
+	return whitespaceTable[c]
+}
+
+// replaceMultipleWhitespace replaces character series of space, \n, \t, \f, \r into a single space or newline (when the serie contained a \n or \r).
+func replaceMultipleWhitespace(input string) string {
+	b := []byte(input)
+	j := 0
+	prevWS := false
+	hasNewline := false
+	for i := 0; i < len(b); i++ {
+		c := b[i]
+		if isWhitespace(c) {
+			prevWS = true
+			if c == '\n' || c == '\r' {
+				hasNewline = true
+			}
+		} else {
+			if prevWS {
+				prevWS = false
+				if hasNewline {
+					hasNewline = false
+				} else {
+					b[j] = ' '
+					j++
+				}
+			}
+			b[j] = b[i]
+			j++
+		}
+	}
+	if prevWS {
+		if hasNewline {
+			b[j] = '\n'
+		} else {
+			b[j] = ' '
+		}
+		j++
+	}
+	return string(b[:j])
 }
