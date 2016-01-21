@@ -95,14 +95,6 @@ func (c *compiler) getComponent(name string) (r *compiledComponent, ok bool) {
 	return
 }
 
-func (c *compiler) Render(ctx context.Context, cmp *components.Component) (res *components.Rendered, err error) {
-	compiled, ok := c.getComponent(cmp.Name)
-	if !ok {
-		return nil, fmt.Errorf("component %s not found", cmp.Name)
-	}
-	return c.renderComponent(ctx, cmp, compiled)
-}
-
 // func (c *compiler) Insert(ctx context.Context, component *components.Component) (err error) {
 // 	compiled, err := c.compile(ctx, component)
 // 	if err != nil {
@@ -122,16 +114,6 @@ func (c *compiler) Start(ctx context.Context) (err error) {
 		return
 	}
 	return c.startWatch(ctx)
-}
-
-//
-// 1. Render all components `require`'d by this component
-// 2. Repeat for `parent` component meaning one this is `extend`-ing (if any).
-// 3. Render page with required components data in context
-// 4. Render `parent` if `extends` any, with rendered component as `children`
-//
-func (c *compiler) renderComponent(ctx context.Context, cmp *components.Component, compiled *compiledComponent) (res *components.Rendered, err error) {
-	return
 }
 
 func (c *compiler) compileAll(ctx context.Context) (err error) {
@@ -222,4 +204,101 @@ func (c *compiler) startWatch(ctx context.Context) (err error) {
 			}
 		}
 	}
+}
+
+func (c *compiler) Render(ctx context.Context, cmp *components.Component) (res *components.Rendered, err error) {
+	compiled, ok := c.getComponent(cmp.Name)
+	if !ok {
+		return nil, fmt.Errorf("component %s not found", cmp.Name)
+	}
+
+	// Create temporary template context
+	tempctx := make(map[string]interface{})
+
+	// 1. Merge base context
+	for key, value := range compiled.Component.Context {
+		tempctx[key] = value
+	}
+
+	// 1a. Merge provided context
+	for key, value := range cmp.Context {
+		tempctx[key] = value
+	}
+
+	// 2. Execute templates from `compiled` base component `With`
+	for key, template := range compiled.withTemplates {
+		tempctx[key], err = template.Execute(pongo2.Context(tempctx))
+		if err != nil {
+			return
+		}
+	}
+
+	// 2a. Compile and execute `With` templates from request `Component`
+	templates, err := compileTemplatesMap(cmp.With)
+	if err != nil {
+		return
+	}
+	for key, template := range templates {
+		tempctx[key], err = template.Execute(pongo2.Context(tempctx))
+		if err != nil {
+			return
+		}
+	}
+
+	// Create result structure
+	res = new(components.Rendered)
+
+	// 3. Execute `compiled` (base) `required` components.
+	var links map[string]string
+	for key, required := range compiled.Component.Require {
+		r, err := c.Render(ctx, required)
+		if err != nil {
+			return nil, err
+		}
+
+		for link, target := range r.Links {
+			if links == nil {
+				links = make(map[string]string)
+			}
+			links[link] = target
+		}
+
+		tempctx[key] = r.Body
+	}
+
+	// 4. Render template
+	body, err := compiled.Template.Execute(pongo2.Context(tempctx))
+	if err != nil {
+		return
+	}
+
+	// 5. If `extends`: return parent with rendered template as `children` in context.
+	var extends string
+	if cmp.Extends == "" {
+		extends = compiled.Component.Extends
+	} else {
+		extends = cmp.Extends
+	}
+	if extends == "" {
+		return &components.Rendered{
+			Body:  body,
+			Links: links,
+		}, nil
+	}
+
+	// Render parent component
+	res, err = c.Render(ctx, &components.Component{
+		Name:    extends,
+		Context: map[string]interface{}{"children": body},
+	})
+	if err != nil {
+		return
+	}
+
+	// Add links to parent component
+	for link, target := range links {
+		res.AddLink(link, target)
+	}
+
+	return
 }
