@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -44,7 +45,7 @@ func Handler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(200)
 
-	if _, ok := r.URL.Query()["json"]; ok {
+	if strings.Contains(r.Header.Get("Accept"), "application/json") {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(res); err != nil {
 			glog.Warningf("[api] response encode error: %v", err)
