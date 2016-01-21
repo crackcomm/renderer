@@ -4,11 +4,12 @@ package compiler
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/flosch/pongo2"
-	"github.com/go-fsnotify/fsnotify"
 	"github.com/golang/glog"
+	"github.com/rjeczalik/notify"
 	"golang.org/x/net/context"
 
 	"bitbucket.org/moovie/renderer/components"
@@ -43,8 +44,9 @@ func New(opts ...Option) Compiler {
 		opt(o)
 	}
 	return &compiler{
-		mutex: new(sync.RWMutex),
-		opts:  o,
+		components: make(map[string]*compiledComponent),
+		mutex:      new(sync.RWMutex),
+		opts:       o,
 	}
 }
 
@@ -107,6 +109,12 @@ func (c *compiler) getComponent(name string) (r *compiledComponent, ok bool) {
 // }
 
 func (c *compiler) Start(ctx context.Context) (err error) {
+	for n, dir := range c.opts.dirs {
+		c.opts.dirs[n], err = filepath.Abs(dir)
+		if err != nil {
+			return
+		}
+	}
 	if err = c.compileAll(ctx); err != nil {
 		return
 	}
@@ -132,7 +140,7 @@ func (c *compiler) compileAll(ctx context.Context) (err error) {
 		for basedir, component := range list {
 			compiled, err := c.compile(withComponentPath(ctx, basedir), component)
 			if err != nil {
-				return fmt.Errorf("component %s compile: %v", component.Name, err)
+				return fmt.Errorf("component %q compile: %v", component.Name, err)
 			}
 			c.mutex.Lock()
 			c.components[component.Name] = compiled
@@ -144,7 +152,7 @@ func (c *compiler) compileAll(ctx context.Context) (err error) {
 }
 
 func (c *compiler) compile(ctx context.Context, cmp *components.Component) (res *compiledComponent, err error) {
-	glog.V(3).Infof("[compile] component: %s", cmp.Name)
+	glog.V(3).Infof("[compile] name=%q", cmp.Name)
 
 	// Component main filename
 	fname := resolvePath(ctx, cmp.Main)
@@ -176,14 +184,11 @@ func (c *compiler) compile(ctx context.Context, cmp *components.Component) (res 
 }
 
 func (c *compiler) startWatch(ctx context.Context) (err error) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return
-	}
-	defer watcher.Close()
+	ch := make(chan notify.EventInfo, 1)
+	defer notify.Stop(ch)
 
 	for _, dir := range c.opts.dirs {
-		err = watcher.Add(dir)
+		err = notify.Watch(fmt.Sprintf("%s/...", strings.TrimRight(dir, "/")), ch, notify.All)
 		if err != nil {
 			return
 		}
@@ -193,14 +198,11 @@ func (c *compiler) startWatch(ctx context.Context) (err error) {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case err = <-watcher.Errors:
-			return err
-		case event := <-watcher.Events:
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				err = c.compileAll(ctx)
-				if err != nil {
-					return
-				}
+		case <-ch:
+			glog.V(1).Info("[watch] event")
+			err = c.compileAll(ctx)
+			if err != nil {
+				return
 			}
 		}
 	}
@@ -209,8 +211,9 @@ func (c *compiler) startWatch(ctx context.Context) (err error) {
 func (c *compiler) Render(ctx context.Context, cmp *components.Component) (res *components.Rendered, err error) {
 	compiled, ok := c.getComponent(cmp.Name)
 	if !ok {
-		return nil, fmt.Errorf("component %s not found", cmp.Name)
+		return nil, fmt.Errorf("component %q not found", cmp.Name)
 	}
+	glog.V(3).Infof("[render] name=%q", cmp.Name)
 
 	// Create temporary template context
 	tempctx := make(map[string]interface{})
