@@ -43,8 +43,6 @@ func Handler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(200)
-
 	if strings.Contains(r.Header.Get("Accept"), "application/json") {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(res); err != nil {
@@ -58,8 +56,8 @@ func Handler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func writeError(w http.ResponseWriter, code int, err string) {
-	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(struct {
 		Msg  string `json:"error_msg"`
 		Code int    `json:"error_code"`
