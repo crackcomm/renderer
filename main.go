@@ -39,6 +39,5 @@ func glogFlags(c *cli.Context) error {
 	} else if v > 0 {
 		flag.Set("v", fmt.Sprintf("%d", v))
 	}
-	glog.Info("verbosity set")
 	return nil
 }
