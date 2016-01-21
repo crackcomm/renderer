@@ -1,0 +1,34 @@
+<h1 class="page-header">Components <small>({{ components|length }})</small></h1>
+
+<div class="table-responsive">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Component Name</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for component in components %}
+      <tr>
+        <td>
+          <a href="/component/{{ component.Name }}">
+            {{ component.Name }}
+          </a>
+        </td>
+        <td>
+          <form action="/components/delete/{{ component.Name }}" method="post">
+            <input type="submit" value="Delete" class="btn btn-danger btn-xs" onclick="return confirm('Delete {{ component.Name }}?')" />
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p>
+  <form action="/components/clear" method="post">
+    <input type="submit" value="Delete all components" class="pull-right btn btn-danger btn-xs" onclick="return confirm('Do You want to delete all components?')" />
+  </form>
+</p>
