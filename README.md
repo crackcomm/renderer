@@ -1,8 +1,89 @@
 # Renderer
 
-### TODO: web interface
+### Components
 
-Components flow from `storage` to `compiler` so `compiler` does not provide `Insert` method.
+```json
+{
+  "name": "example.root",
+  "main": "file://component.html",
+  "styles": [
+    "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css",
+    "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css",
+    "file://component.css"
+  ],
+  "scripts": [
+    "https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js",
+    "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js",
+    "file://application.js"
+  ]
+}
+```
+
+Example of including components: `movies.movie` with `movies.video` component that can be rendered using `{{ video_component }}`:
+
+Additionaly this component extends `movies.root` so after this component will be rendered, result will be included in `movies.root` under `{{ children }}` value.
+
+```json
+{
+  "name": "movies.movie",
+  "main": "file://component.html",
+  "extends": "movies.root",
+  "requires": {
+    "video_component": {
+      "name": "movies.video",
+      "with": {
+        "title": "{{ movie.title }} ({{ movie.year }})"
+      }
+    }
+  }
+}
+```
+
+### Rendering
+
+Rendering `admin.domains` component with a list of `domains` in `context`.
+
+```json
+{
+  "name": "admin.domains",
+  "context": {
+    "domains": [
+      {"name": "test.pl", "links": ["test.pl"]},
+      {"name": "test2.pl", "links": ["test.pl"]},
+      {"name": "test3.pl", "links": ["test.pl"]}
+    ]
+  }
+}
+```
+
+### Embedding
+
+All data can be embed in `component.json`:
+
+  * `http://` and `https://` urls are allowed
+  * `file://` should be relative to `component.json`
+  * `text://` for plain text (non templates)
+  * `template://` will be executed as template
+
+```json
+{
+  "name": "example.root",
+  "main": "template://<h1>{{title}}</h1>",
+  "styles": [
+    "template://h1 { color: {{ color }}; }",
+    "text://some text here"
+  ],
+  "scripts": [
+    "template://console.log('{{ message }}');",
+    "text://console.log('test');"
+  ]
+}
+```
+
+
+### TODO
+
+#### Components Storage
 
 What we need is to create persistent storage interface with watching for changes.
 
@@ -18,92 +99,3 @@ Components persistent storage will be able to process and forward following even
 
 
 Compiler if enabled will recompile templates and store in-memory on event from persistent storage.
-
-### TODO: others
-
-* `file://` in `styles`, `scripts` and `main` instead of `data:...` for content
-
-## Usage
-
-### Components
-
-Component definition in Go:
-
-```Go
-// Component - Component definition.
-type Component struct {
-	// Name - Name of the component as registered in global scope.
-	Name string
-
-	// Main - Main entrypoint of rendering the component.
-	Main string
-
-	// Extends - Parent of the component.
-	// Parent will be rendered with this component html as `children` in context.
-	Extends string
-
-	// Styles - List of relative paths or URLs to CSS files.
-	// When local files will be read and parsed as templates.
-	Styles []string
-
-	// Scripts - List of relative paths or URLs to JS files.
-	// When local files will be read and parsed as templates.
-	Scripts []string
-
-	// Require - Components required by this component.
-	// Those will be rendered before and set in context under keys from map.
-	Require map[string]*Component `json:"require,omitempty"`
-
-	// Context - Base context for the component.
-	Context map[string]interface{} `json:"context,omitempty"`
-
-	// With - Like context but values should be templates.
-	With map[string]string `json:"with,omitempty"`
-}
-```
-
-```json
-{
-  "name": "example.root",
-  "main": "component.html",
-  "styles": [
-    "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css",
-    "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css"
-  ],
-  "scripts": [
-    "https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js",
-    "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
-  ]
-}
-```
-
-```json
-{
-  "name": "movies.movie",
-  "main": "component.html",
-  "extends": "movies.root",
-  "requires": {
-    "video": {
-      "name": "movies.video",
-      "with": {
-        "title": "{{ movie.title }} ({{ movie.year }})"
-      }
-    }
-  }
-}
-```
-
-### Rendering
-
-```json
-{
-  "name": "admin.domains",
-  "context": {
-    "domains": [
-      {"Name": "test.pl", "Links": ["test.pl"]},
-      {"Name": "test2.pl", "Links": ["test.pl"]},
-      {"Name": "test3.pl", "Links": ["test.pl"]}
-    ]
-  }
-}
-```
