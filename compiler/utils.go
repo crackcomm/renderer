@@ -40,9 +40,21 @@ func newListPongoOrURL(ctx context.Context, allowedDirs []string, list []string)
 	return
 }
 
+func pongoFromData(ctx context.Context, v string) (*pongoOrURL, error) {
+	v = strings.TrimSpace(v[strings.Index(v, ";")+1:])
+	template, err := pongo2.FromString(v)
+	if err != nil {
+		return nil, err
+	}
+	return &pongoOrURL{template: template}, nil
+}
+
 func newPongoOrURL(ctx context.Context, allowedDirs []string, v string) (*pongoOrURL, error) {
 	if strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://") {
 		return &pongoOrURL{url: v}, nil
+	}
+	if strings.HasPrefix(v, "data:") && strings.Index(v, ";") > 0 {
+		return pongoFromData(ctx, v)
 	}
 	path := resolvePath(ctx, v)
 	if !pathInList(path, allowedDirs) {

@@ -84,7 +84,3 @@ type Component struct {
   }
 }
 ```
-
-## TODO:
-
-- [ ] Renderng Styles and Scripts from Request (priority: low; not used)

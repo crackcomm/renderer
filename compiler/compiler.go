@@ -129,6 +129,7 @@ func (c *compiler) Start(ctx context.Context) (err error) {
 }
 
 func (c *compiler) compileAll(ctx context.Context) (err error) {
+	glog.V(3).Info("[compile] all")
 	for _, dir := range c.opts.dirs {
 		select {
 		case <-ctx.Done():
@@ -291,6 +292,28 @@ func (c *compiler) Render(ctx context.Context, cmp *components.Component) (res *
 	if err != nil {
 		return
 	}
+
+	// Render scripts from request
+	ptmpls, err := newListPongoOrURL(ctx, c.opts.dirs, cmp.Scripts)
+	if err != nil {
+		return
+	}
+	s, err := executePongoOrURL(tempctx, ptmpls)
+	if err != nil {
+		return
+	}
+	res.Scripts = append(res.Scripts, s...)
+
+	// Render styles from request
+	ptmpls, err = newListPongoOrURL(ctx, c.opts.dirs, cmp.Styles)
+	if err != nil {
+		return
+	}
+	s, err = executePongoOrURL(tempctx, ptmpls)
+	if err != nil {
+		return
+	}
+	res.Styles = append(res.Styles, s...)
 
 	// 4. Render template
 	res.Body, err = compiled.Template.Execute(pongo2.Context(tempctx))
