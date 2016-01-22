@@ -4,29 +4,26 @@
 
 So what a compiler is:
 
-	* Has 3-rd party storage interface
-	* Gets components from this storage
-	* Compiles components for rendering
-	* When asked for a component looks in storage
-	* Compiles components on demand
-	* Caches compiled results
-	* When component retrieved from storage is cached returns cached result
+* Has 3-rd party storage interface
+* Gets components from this storage
+* Compiles components for rendering
+* When asked for a component looks in storage
+* Compiles components on demand
+* Caches compiled results
+* When component retrieved from storage is cached returns cached result
 
 File system storage and watching for changes
 
-	* Components are very lightweight so full in-memory storage is fine
-	  along with file system replication
-	* Compiler itself does not have to watch for changes in files
-	  when a file system storage may be in-memory cached and on-change
-	  caches can be cleared.
+* Components are very lightweight so full in-memory storage is fine along with file system replication
+* Compiler itself does not have to watch for changes in files when a file system storage may be in-memory cached and on-change caches can be cleared.
 
 Compiling & Rendering:
 
-  1. compiler -> storage [ask for component]
-  2. compiler [is component already compiled, in cache?]
-  3. compiler [if not cached: compile component]
-  4. compiler [if not cached: cache compiled component]
-  5. compiler [return compilation result]
+1. compiler -> storage [ask for component]
+2. compiler [is component already compiled, in cache?]
+3. compiler [if not cached: compile component]
+4. compiler [if not cached: cache compiled component]
+5. compiler [return compilation result]
 
 
 ### Components
