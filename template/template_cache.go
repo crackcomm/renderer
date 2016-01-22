@@ -60,6 +60,7 @@ func (s *CachedSet) Template(name string) (t Template, err error) {
 // Close - Closes cached set, destroys cache and stops watching for changes.
 func (s *CachedSet) Close() (err error) {
 	if s.events != nil {
+		notify.Stop(s.events)
 		close(s.events)
 	}
 	return
