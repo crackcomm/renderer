@@ -55,6 +55,8 @@ var compilerCommand = cli.Command{
 		)
 
 		if c.Bool("web") {
+			glog.Infof("[api] starting on %s", c.String("listen-addr"))
+
 			ctx := compiler.NewContext(context.Background(), cmp)
 			go serveAPI(ctx, c)
 		}
@@ -79,8 +81,6 @@ func serveAPI(ctx context.Context, c *cli.Context) {
 
 	// Add timeout handler
 	chain.UseC(xhandler.TimeoutHandler(c.Duration("render-timeout")))
-
-	glog.Infof("[api] starting on %s", c.String("listen-addr"))
 
 	handler := chain.HandlerCtx(ctx, xhandler.HandlerFuncC(api.Handler))
 
