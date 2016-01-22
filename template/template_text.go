@@ -4,7 +4,12 @@ import "io"
 
 // Text - Returns template interface that does not actually execute templates.
 func Text(text string) Template {
-	return &textTemplate{text: []byte(text)}
+	return TextBytes([]byte(text))
+}
+
+// TextBytes - Returns template interface that does not actually execute templates.
+func TextBytes(text []byte) Template {
+	return &textTemplate{text: text}
 }
 
 type textTemplate struct {

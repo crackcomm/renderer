@@ -24,6 +24,11 @@ func FromString(body string) (t Template, err error) {
 	return &pongoTemplate{Template: template}, nil
 }
 
+// FromBytes - Creates a new template structure from byte array.
+func FromBytes(body []byte) (t Template, err error) {
+	return FromString(string(body))
+}
+
 type pongoTemplate struct {
 	*pongo2.Template
 }
