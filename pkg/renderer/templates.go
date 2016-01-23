@@ -1,15 +1,18 @@
-package template
+package renderer
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
+
+	"bitbucket.org/moovie/renderer/pkg/template"
 )
 
-// Parse - Parse template from string.
+// parseTemplate - Parse template from string.
 // String may be in URL format (eq. `http://...` or `file://...`).
 // Or it may contain template data in format `data:template {{ here }}`.
 // Or it may contain pure text data in format `text:plain data here`.
-func Parse(text string) (t Template, err error) {
+func parseTemplate(s *Storage, text, baseDir string) (t template.Template, err error) {
 	scheme, rest, ok := parseScheme(text)
 	if !ok {
 		return nil, fmt.Errorf("invalid template url %q", text)
@@ -17,22 +20,25 @@ func Parse(text string) (t Template, err error) {
 
 	switch scheme {
 	case "template":
-		return FromString(rest)
+		return template.FromString(rest)
 	case "file":
-		return FromFile(rest)
+		if baseDir != "" {
+			rest = filepath.Join(baseDir, rest)
+		}
+		return s.Template(rest)
 	case "http", "https":
-		return Text(text), nil
+		return template.Text(text), nil
 	case "text":
-		return Text(rest), nil
+		return template.Text(rest), nil
 	}
 
 	return
 }
 
-// ParseList - Parses list of templates.
-func ParseList(texts []string) (res []Template, err error) {
+// parseTemplates - Parses list of templates.
+func parseTemplates(s *Storage, texts []string, baseDir string) (res []template.Template, err error) {
 	for _, text := range texts {
-		t, err := Parse(text)
+		t, err := parseTemplate(s, text, baseDir)
 		if err != nil {
 			return nil, err
 		}

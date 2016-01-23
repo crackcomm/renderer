@@ -105,23 +105,3 @@ All data can be embed in `component.json`:
   ]
 }
 ```
-
-
-### TODO
-
-#### Components Storage
-
-What we need is to create persistent storage interface with watching for changes.
-
-Components persistent storage will be able to process and forward following event types:
-
-	CreateFile // not component.json
-	ChangeFile // not component.json
-	RemoveFile // not component.json
-
-	CreateComponent // component.json change
-	ChangeComponent // component.json change
-	RemoveComponent // component.json change
-
-
-Compiler if enabled will recompile templates and store in-memory on event from persistent storage.

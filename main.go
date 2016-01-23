@@ -8,7 +8,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
 
-	"bitbucket.org/moovie/renderer/cmd"
+	"bitbucket.org/moovie/renderer/pkg/cmd"
 )
 
 func main() {
