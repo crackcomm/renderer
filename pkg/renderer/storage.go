@@ -131,5 +131,6 @@ func (s *storage) watch() {
 	for event := range s.events {
 		s.cache.files.Delete(event.Path())
 		s.cache.templates.Delete(event.Path())
+		s.cache.components.Delete(event.Path())
 	}
 }
