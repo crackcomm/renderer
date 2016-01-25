@@ -1,5 +1,5 @@
 {
-  "main": "component.html",
+  "main": "file://component.html",
   "name": "dashboard.components",
   "extends": "dashboard.root"
 }
