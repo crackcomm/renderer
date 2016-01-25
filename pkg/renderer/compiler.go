@@ -7,13 +7,13 @@ import (
 
 // Compiler - Components compiler.
 type Compiler struct {
-	*Storage
+	Storage
 }
 
 type compilerCtxKey struct{}
 
 // NewCompiler - Creates a new components compiler.
-func NewCompiler(s *Storage) *Compiler {
+func NewCompiler(s Storage) *Compiler {
 	return &Compiler{Storage: s}
 }
 
@@ -28,10 +28,42 @@ func FromContext(ctx context.Context) (c *Compiler, ok bool) {
 	return
 }
 
+// CompileByName - Compiles a component by name.
+func (compiler *Compiler) CompileByName(name string) (compiled *Compiled, err error) {
+	c, err := compiler.Storage.Component(name)
+	if err != nil {
+		return
+	}
+	return compiler.Compile(c)
+}
+
 // Compile - Compiles a component.
 // Expects the component to have all the required data embed or in storage.
 func (compiler *Compiler) Compile(c *Component) (compiled *Compiled, err error) {
 	compiled = &Compiled{Component: c}
+	err = compiler.compileTo(c, compiled)
+	return
+}
+
+// CompileFromStorage -
+func (compiler *Compiler) CompileFromStorage(c *Component) (compiled *Compiled, err error) {
+	base, err := compiler.Storage.Component(c.Name)
+	if err != nil {
+		return
+	}
+	compiled = &Compiled{Component: c}
+	err = compiler.compileTo(base, compiled)
+	if err != nil {
+		return
+	}
+	err = compiler.compileTo(c, compiled)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (compiler *Compiler) compileTo(c *Component, compiled *Compiled) (err error) {
 	compiled.Main, err = parseTemplate(compiler.Storage, c.Main, c.Name)
 	if err != nil {
 		return
@@ -54,24 +86,17 @@ func (compiler *Compiler) Compile(c *Component) (compiled *Compiled, err error) 
 			return
 		}
 	}
-	// TODO: required
-	// if len(c.Require) != 0 {
-	// 	compiled.Require = make(map[string]*Compiled)
-	// 	for name, require := range c.Require {
-	// 		compiled.Require[name], err = compiler.CompileByName(name)
-	// 		if err != nil {
-	// 			return
-	// 		}
-	// 	}
-	// }
-	return
-}
 
-// CompileByName - Compiles a component by name.
-func (compiler *Compiler) CompileByName(name string) (compiled *Compiled, err error) {
-	c, err := compiler.Storage.Component(name)
-	if err != nil {
-		return
+	// Compile required components
+	if len(c.Require) != 0 {
+		compiled.Require = make(map[string]*Compiled)
+		for name, r := range c.Require {
+			compiled.Require[name], err = compiler.CompileFromStorage(r)
+			if err != nil {
+				return
+			}
+		}
 	}
-	return compiler.Compile(c)
+
+	return
 }

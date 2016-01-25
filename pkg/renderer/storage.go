@@ -12,8 +12,16 @@ import (
 	"bitbucket.org/moovie/renderer/pkg/template"
 )
 
-// Storage - Components storage.
-type Storage struct {
+// Storage - Components storage interface.
+type Storage interface {
+	Component(string) (*Component, error)
+	Template(string) (template.Template, error)
+	Text(string) (template.Template, error)
+	Close() error
+}
+
+// storage - Components storage.
+type storage struct {
 	dirname string
 	events  chan notify.EventInfo
 	cache   struct {
@@ -24,31 +32,33 @@ type Storage struct {
 }
 
 // NewStorage - Creates new components storage.
-func NewStorage(dirname string, defaultExpiration time.Duration, cleanupInterval time.Duration) (s *Storage, err error) {
-	s = &Storage{dirname: dirname}
+func NewStorage(dirname string, defaultExpiration time.Duration, cleanupInterval time.Duration) (Storage, error) {
+	s := &storage{dirname: dirname}
 	s.cache.components = cache.New(defaultExpiration, cleanupInterval)
 	s.cache.templates = cache.New(defaultExpiration, cleanupInterval)
 	s.cache.files = cache.New(defaultExpiration, cleanupInterval)
-	err = s.start()
-	return
+	if err := s.start(); err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 // Text - Returns file content as Template interface.
-func (s *Storage) Text(name string) (t template.Template, err error) {
-	body, err := s.read(name)
+func (s *storage) Text(path string) (t template.Template, err error) {
+	body, err := s.read(path)
 	if err != nil {
 		return
 	}
 	return template.TextBytes(body), nil
 }
 
-// Template - Compiles template by filename and saves in cache.
+// Template - Compiles template by file path and saves in cache.
 // Returns cached template if already compiled and not changed.
-func (s *Storage) Template(name string) (t template.Template, err error) {
-	if tmp, ok := s.cache.templates.Get(name); ok {
+func (s *storage) Template(path string) (t template.Template, err error) {
+	if tmp, ok := s.cache.templates.Get(path); ok {
 		return tmp.(template.Template), nil
 	}
-	body, err := s.read(name)
+	body, err := s.read(path)
 	if err != nil {
 		return
 	}
@@ -56,12 +66,12 @@ func (s *Storage) Template(name string) (t template.Template, err error) {
 	if err != nil {
 		return
 	}
-	s.cache.templates.Set(name, t, cache.DefaultExpiration)
+	s.cache.templates.Set(path, t, cache.DefaultExpiration)
 	return
 }
 
 // Component - Returns component by name.
-func (s *Storage) Component(name string) (c *Component, err error) {
+func (s *storage) Component(name string) (c *Component, err error) {
 	if tmp, ok := s.cache.components.Get(name); ok {
 		return tmp.(*Component), nil
 	}
@@ -80,7 +90,7 @@ func (s *Storage) Component(name string) (c *Component, err error) {
 }
 
 // Close - Destroys caches and stops watching for changes.
-func (s *Storage) Close() (err error) {
+func (s *storage) Close() (err error) {
 	if s.events != nil {
 		notify.Stop(s.events)
 		close(s.events)
@@ -92,7 +102,7 @@ func (s *Storage) Close() (err error) {
 }
 
 // read - reads file content or returns cached byte array
-func (s *Storage) read(name string) (body []byte, err error) {
+func (s *storage) read(name string) (body []byte, err error) {
 	if b, ok := s.cache.files.Get(name); ok {
 		return b.([]byte), nil
 	}
@@ -105,7 +115,7 @@ func (s *Storage) read(name string) (body []byte, err error) {
 }
 
 // start - Starts watching for file changes in a goroutine.
-func (s *Storage) start() (err error) {
+func (s *storage) start() (err error) {
 	s.events = make(chan notify.EventInfo, 1)
 	err = notify.Watch(s.dirname, s.events, notify.All)
 	if err != nil {
@@ -117,7 +127,7 @@ func (s *Storage) start() (err error) {
 
 // watch - Watches for changes in templates files.
 // If change event is emitted, compiled template is deleted from cache.
-func (s *Storage) watch() {
+func (s *storage) watch() {
 	for event := range s.events {
 		s.cache.files.Delete(event.Path())
 		s.cache.templates.Delete(event.Path())
