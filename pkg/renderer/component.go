@@ -47,7 +47,7 @@ type Rendered struct {
 	Scripts []string `json:"scripts,omitempty"`
 
 	// Links - List of routes(/links) pointing to files.
-	Links map[string]string `json:"links,omitempty"`
+	// Links map[string]string `json:"links,omitempty"`
 }
 
 // Compiled - Compiled component ready to render.
