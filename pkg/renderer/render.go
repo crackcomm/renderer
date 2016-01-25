@@ -1,9 +1,15 @@
 package renderer
 
-import "bitbucket.org/moovie/renderer/pkg/template"
+import (
+	"bitbucket.org/moovie/renderer/pkg/template"
+	"github.com/flosch/pongo2"
+)
 
 // Render - Renders compiled component.
 func Render(c *Compiled, ctx template.Context) (res *Rendered, err error) {
+	if ctx == nil {
+		ctx = make(template.Context)
+	}
 	res = new(Rendered)
 	err = renderTo(c, ctx, res, res)
 	return
@@ -33,7 +39,7 @@ func renderTo(c *Compiled, ctx template.Context, main, res *Rendered) (err error
 
 	// Extend a template if any
 	if c.Extends != nil {
-		ctx["children"] = res.Body
+		ctx["children"] = pongo2.AsSafeValue(res.Body)
 		err = renderTo(c.Extends, ctx, main, res)
 		if err != nil {
 			return

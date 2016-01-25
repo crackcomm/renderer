@@ -7,18 +7,17 @@ import (
 	"net/http"
 	"strings"
 
+	"bitbucket.org/moovie/renderer/pkg/renderer"
+
 	"github.com/golang/glog"
 
 	"golang.org/x/net/context"
-
-	"bitbucket.org/moovie/renderer/compiler"
-	"bitbucket.org/moovie/renderer/components"
 )
 
 // Handler - Compiler API handler.
 // Retrieves compiler from context using `compiler.FromContext`
 func Handler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	c, ok := compiler.FromContext(ctx)
+	c, ok := renderer.FromContext(ctx)
 	if !ok {
 		glog.Warning("[api] compiler not found in context")
 		writeError(w, http.StatusInternalServerError, "compiler not found")
@@ -32,17 +31,21 @@ func Handler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, fmt.Sprintf("method %q is not allowed", r.Method))
 		return
 	}
-	cmp := new(components.Component)
+	cmp := new(renderer.Component)
 	if err := json.NewDecoder(r.Body).Decode(cmp); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	res, err := c.Render(ctx, cmp)
+	compiled, err := c.CompileFromStorage(cmp)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("compile error: %v", err))
 		return
 	}
-
+	res, err := renderer.Render(compiled, nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("render error: %v", err))
+		return
+	}
 	if strings.Contains(r.Header.Get("Accept"), "application/json") {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(res); err != nil {

@@ -1,22 +1,27 @@
 package cmd
 
 import (
+	"net/http"
 	"time"
 
-	"bitbucket.org/moovie/renderer/pkg/renderer"
+	"golang.org/x/net/context"
 
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
+	"github.com/rs/xhandler"
+
+	"bitbucket.org/moovie/renderer/pkg/api"
+	"bitbucket.org/moovie/renderer/pkg/renderer"
 )
 
 // Commands - List of renderer commands.
 var Commands = []cli.Command{
-	compilerCommand,
+	webCommand,
 }
 
-var compilerCommand = cli.Command{
-	Name:  "compiler",
-	Usage: "compiles components from directories",
+var webCommand = cli.Command{
+	Name:  "web",
+	Usage: "starts renderer web API",
 	Flags: []cli.Flag{
 		// Compiler options
 		cli.StringFlag{
@@ -56,41 +61,31 @@ var compilerCommand = cli.Command{
 		}
 		defer storage.Close()
 
-		// compiler, err := renderer.NewCompiler(storage)
-		// if err != nil {
-		// 	glog.Fatalf("[compiler] %v", err)
-		// }
-
 		compiler := renderer.NewCompiler(storage)
 
-		// cmp := compiler.New(
-		// 	compiler.WithWatch(c.Bool("watch")),
-		// 	compiler.WithDirs(c.StringSlice("dir")...),
-		// )
+		if c.Bool("web") {
+			glog.Infof("[api] starting on %s", c.String("listen-addr"))
 
-		// if c.Bool("web") {
-		// 	glog.Infof("[api] starting on %s", c.String("listen-addr"))
-		//
-		// 	ctx := compiler.NewContext(context.Background(), cmp)
-		// 	go serveAPI(ctx, c)
-		// }
+			ctx := renderer.NewContext(context.Background(), compiler)
+			serveAPI(ctx, c)
+		}
 	},
 }
 
-// func serveAPI(ctx context.Context, c *cli.Context) {
-// 	var chain xhandler.Chain
-//
-// 	// Add close notifier handler so context is cancelled when the client closes
-// 	// the connection
-// 	chain.UseC(xhandler.CloseHandler)
-//
-// 	// Add timeout handler
-// 	chain.UseC(xhandler.TimeoutHandler(c.Duration("render-timeout")))
-//
-// 	handler := chain.HandlerCtx(ctx, xhandler.HandlerFuncC(api.Handler))
-//
-// 	err := http.ListenAndServe(c.String("listen-addr"), handler)
-// 	if err != nil {
-// 		glog.Fatalf("[api] %v", err)
-// 	}
-// }
+func serveAPI(ctx context.Context, c *cli.Context) {
+	var chain xhandler.Chain
+
+	// Add close notifier handler so context is cancelled when the client closes
+	// the connection
+	chain.UseC(xhandler.CloseHandler)
+
+	// Add timeout handler
+	chain.UseC(xhandler.TimeoutHandler(c.Duration("render-timeout")))
+
+	handler := chain.HandlerCtx(ctx, xhandler.HandlerFuncC(api.Handler))
+
+	err := http.ListenAndServe(c.String("listen-addr"), handler)
+	if err != nil {
+		glog.Fatalf("[api] %v", err)
+	}
+}

@@ -1,32 +1,44 @@
 # Renderer
 
-## Plans
+## Usage
 
-So what a compiler is:
+### Installation
 
-* Has 3-rd party storage interface
-* Gets components from this storage
-* Compiles components for rendering
-* When asked for a component looks in storage
-* Compiles components on demand
-* Caches compiled results
-* When component retrieved from storage is cached returns cached result
+```sh
+$ make install
+```
 
-File system storage and watching for changes
+### API
 
-* Components are very lightweight so full in-memory storage is fine along with file system replication
-* Compiler itself does not have to watch for changes in files when a file system storage may be in-memory cached and on-change caches can be cleared.
+Start API server:
 
-Compiling & Rendering:
+```sh
+$ renderer web
+```
 
-1. compiler -> storage [ask for component]
-2. compiler [is component already compiled, in cache?]
-3. compiler [if not cached: compile component]
-4. compiler [if not cached: cache compiled component]
-5. compiler [return compilation result]
+Render using API:
 
+API responds with `JSON` **only when** `Accept` header contains `application/json`,
+by default it writes HTML response.
+
+```sh
+$ curl -XPOST --data '{
+  "name": "dashboard.components",
+  "context": {
+    "components": [
+      {
+        "name": "my.example.component"
+      }
+    ]
+  }
+}' http://127.0.0.1:5055/
+```
 
 ### Components
+
+Some example components can be found in `dashboard/components` directory.
+
+JSON representation of an `example.root` component:
 
 ```json
 {
@@ -105,3 +117,29 @@ All data can be embed in `component.json`:
   ]
 }
 ```
+
+
+#### Some notes
+
+So what a compiler is:
+
+* Has 3-rd party storage interface
+* Gets components from this storage
+* Compiles components for rendering
+* When asked for a component looks in storage
+* Compiles components on demand
+* Caches compiled results
+* When component retrieved from storage is cached returns cached result
+
+File system storage and watching for changes
+
+* Components are very lightweight so full in-memory storage is fine along with file system replication
+* Compiler itself does not have to watch for changes in files when a file system storage may be in-memory cached and on-change caches can be cleared.
+
+Compiling & Rendering:
+
+1. compiler -> storage [ask for component]
+2. compiler [is component already compiled, in cache?]
+3. compiler [if not cached: compile component]
+4. compiler [if not cached: cache compiled component]
+5. compiler [return compilation result]

@@ -64,9 +64,11 @@ func (compiler *Compiler) CompileFromStorage(c *Component) (compiled *Compiled, 
 }
 
 func (compiler *Compiler) compileTo(c *Component, compiled *Compiled) (err error) {
-	compiled.Main, err = parseTemplate(compiler.Storage, c.Main, c.Name)
-	if err != nil {
-		return
+	if c.Main != "" {
+		compiled.Main, err = parseTemplate(compiler.Storage, c.Main, c.Name)
+		if err != nil {
+			return
+		}
 	}
 	compiled.Styles, err = parseTemplates(compiler.Storage, c.Styles, c.Name)
 	if err != nil {

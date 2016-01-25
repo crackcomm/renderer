@@ -75,8 +75,7 @@ func (s *storage) Component(name string) (c *Component, err error) {
 	if tmp, ok := s.cache.components.Get(name); ok {
 		return tmp.(*Component), nil
 	}
-	dirname := filepath.Join(s.dirname, name)
-	body, err := s.read(filepath.Join(dirname, "component.json"))
+	body, err := s.read(filepath.Join(name, "component.json"))
 	if err != nil {
 		return
 	}
@@ -102,15 +101,16 @@ func (s *storage) Close() (err error) {
 }
 
 // read - reads file content or returns cached byte array
-func (s *storage) read(name string) (body []byte, err error) {
-	if b, ok := s.cache.files.Get(name); ok {
+func (s *storage) read(path string) (body []byte, err error) {
+	if b, ok := s.cache.files.Get(path); ok {
 		return b.([]byte), nil
 	}
-	body, err = ioutil.ReadFile(name)
+	path = filepath.Join(s.dirname, path)
+	body, err = ioutil.ReadFile(path)
 	if err != nil {
 		return
 	}
-	s.cache.files.Set(name, body, cache.DefaultExpiration)
+	s.cache.files.Set(path, body, cache.DefaultExpiration)
 	return
 }
 

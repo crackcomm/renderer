@@ -12,13 +12,13 @@
       {% for component in components %}
       <tr>
         <td>
-          <a href="/component/{{ component.Name }}">
-            {{ component.Name }}
+          <a href="/component/{{ component.name }}">
+            {{ component.name }}
           </a>
         </td>
         <td>
-          <form action="/components/delete/{{ component.Name }}" method="post">
-            <input type="submit" value="Delete" class="btn btn-danger btn-xs" onclick="return confirm('Delete {{ component.Name }}?')" />
+          <form action="/components/delete/{{ component.name }}" method="post">
+            <input type="submit" value="Delete" class="btn btn-danger btn-xs" onclick="return confirm('Delete {{ component.name }}?')" />
           </form>
         </td>
       </tr>
