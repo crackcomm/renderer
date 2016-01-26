@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/patrickmn/go-cache"
 	"github.com/rjeczalik/notify"
 
@@ -33,6 +34,10 @@ type storage struct {
 
 // NewStorage - Creates new components storage.
 func NewStorage(dirname string, defaultExpiration time.Duration, cleanupInterval time.Duration) (Storage, error) {
+	dirname, err := filepath.Abs(dirname)
+	if err != nil {
+		return nil, err
+	}
 	s := &storage{dirname: dirname}
 	s.cache.components = cache.New(defaultExpiration, cleanupInterval)
 	s.cache.templates = cache.New(defaultExpiration, cleanupInterval)
@@ -45,6 +50,7 @@ func NewStorage(dirname string, defaultExpiration time.Duration, cleanupInterval
 
 // Text - Returns file content as Template interface.
 func (s *storage) Text(path string) (t template.Template, err error) {
+	path = filepath.Join(s.dirname, path)
 	body, err := s.read(path)
 	if err != nil {
 		return
@@ -55,6 +61,7 @@ func (s *storage) Text(path string) (t template.Template, err error) {
 // Template - Compiles template by file path and saves in cache.
 // Returns cached template if already compiled and not changed.
 func (s *storage) Template(path string) (t template.Template, err error) {
+	path = filepath.Join(s.dirname, path)
 	if tmp, ok := s.cache.templates.Get(path); ok {
 		return tmp.(template.Template), nil
 	}
@@ -72,10 +79,11 @@ func (s *storage) Template(path string) (t template.Template, err error) {
 
 // Component - Returns component by name.
 func (s *storage) Component(name string) (c *Component, err error) {
-	if tmp, ok := s.cache.components.Get(name); ok {
+	path := filepath.Join(s.dirname, name, "component.json")
+	if tmp, ok := s.cache.components.Get(path); ok {
 		return tmp.(*Component), nil
 	}
-	body, err := s.read(filepath.Join(name, "component.json"))
+	body, err := s.read(path)
 	if err != nil {
 		return
 	}
@@ -84,7 +92,7 @@ func (s *storage) Component(name string) (c *Component, err error) {
 	if err != nil {
 		return
 	}
-	s.cache.components.Set(name, c, cache.DefaultExpiration)
+	s.cache.components.Set(path, c, cache.DefaultExpiration)
 	return
 }
 
@@ -105,7 +113,6 @@ func (s *storage) read(path string) (body []byte, err error) {
 	if b, ok := s.cache.files.Get(path); ok {
 		return b.([]byte), nil
 	}
-	path = filepath.Join(s.dirname, path)
 	body, err = ioutil.ReadFile(path)
 	if err != nil {
 		return
@@ -116,8 +123,11 @@ func (s *storage) read(path string) (body []byte, err error) {
 
 // start - Starts watching for file changes in a goroutine.
 func (s *storage) start() (err error) {
+	path := filepath.Join(s.dirname, "...")
+	glog.Infof("[watch] start path=%q", path)
+
 	s.events = make(chan notify.EventInfo, 1)
-	err = notify.Watch(s.dirname, s.events, notify.All)
+	err = notify.Watch(path, s.events, notify.All)
 	if err != nil {
 		return
 	}
@@ -129,6 +139,7 @@ func (s *storage) start() (err error) {
 // If change event is emitted, compiled template is deleted from cache.
 func (s *storage) watch() {
 	for event := range s.events {
+		glog.Infof("[watch] event=%q path=%q", event.Event(), event.Path())
 		s.cache.files.Delete(event.Path())
 		s.cache.templates.Delete(event.Path())
 		s.cache.components.Delete(event.Path())

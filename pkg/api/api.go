@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"bitbucket.org/moovie/renderer/pkg/renderer"
+	"bitbucket.org/moovie/renderer/pkg/template"
 
 	"github.com/golang/glog"
 
@@ -41,21 +42,26 @@ func Handler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("compile error: %v", err))
 		return
 	}
-	res, err := renderer.Render(compiled, nil)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("render error: %v", err))
-		return
-	}
+
 	if strings.Contains(r.Header.Get("Accept"), "application/json") {
+		res, err := renderer.Render(compiled, nil)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("render error: %v", err))
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(res); err != nil {
 			glog.Warningf("[api] response encode error: %v", err)
 		}
 	} else {
+		body, err := renderer.RenderHTML(compiled, nil)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("render error: %v", err), http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(res.Body))
+		w.Write(template.CleanWhitespaces([]byte(body)))
 	}
-
 }
 
 func writeError(w http.ResponseWriter, code int, err string) {

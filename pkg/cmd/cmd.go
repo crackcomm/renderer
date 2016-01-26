@@ -34,10 +34,6 @@ var webCommand = cli.Command{
 		},
 
 		// Web interface options
-		cli.BoolFlag{
-			Name:  "web",
-			Usage: "enables web interface",
-		},
 		cli.StringFlag{
 			Name:  "listen-addr",
 			Usage: "web interface listening address",
@@ -63,29 +59,22 @@ var webCommand = cli.Command{
 
 		compiler := renderer.NewCompiler(storage)
 
-		if c.Bool("web") {
-			glog.Infof("[api] starting on %s", c.String("listen-addr"))
+		var chain xhandler.Chain
 
-			ctx := renderer.NewContext(context.Background(), compiler)
-			serveAPI(ctx, c)
+		// Add close notifier handler so context is cancelled when the client closes
+		// the connection
+		chain.UseC(xhandler.CloseHandler)
+
+		// Add timeout handler
+		chain.UseC(xhandler.TimeoutHandler(c.Duration("render-timeout")))
+
+		ctx := renderer.NewContext(context.Background(), compiler)
+		handler := chain.HandlerCtx(ctx, xhandler.HandlerFuncC(api.Handler))
+
+		glog.Infof("[api] starting on %s", c.String("listen-addr"))
+		err = http.ListenAndServe(c.String("listen-addr"), handler)
+		if err != nil {
+			glog.Fatalf("[api] %v", err)
 		}
 	},
-}
-
-func serveAPI(ctx context.Context, c *cli.Context) {
-	var chain xhandler.Chain
-
-	// Add close notifier handler so context is cancelled when the client closes
-	// the connection
-	chain.UseC(xhandler.CloseHandler)
-
-	// Add timeout handler
-	chain.UseC(xhandler.TimeoutHandler(c.Duration("render-timeout")))
-
-	handler := chain.HandlerCtx(ctx, xhandler.HandlerFuncC(api.Handler))
-
-	err := http.ListenAndServe(c.String("listen-addr"), handler)
-	if err != nil {
-		glog.Fatalf("[api] %v", err)
-	}
 }

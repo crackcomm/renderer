@@ -1,6 +1,11 @@
 package renderer
 
-import "bitbucket.org/moovie/renderer/pkg/template"
+import (
+	"fmt"
+	"strings"
+
+	"bitbucket.org/moovie/renderer/pkg/template"
+)
 
 func renderTemplates(l []template.Template, ctx template.Context) (res []string, err error) {
 	for _, tmp := range l {
@@ -57,4 +62,18 @@ func sliceHasString(slice []string, str string) bool {
 		}
 	}
 	return false
+}
+
+func renderStyle(src string) string {
+	if strings.HasPrefix(src, "://") || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+		return fmt.Sprintf(`<link rel="stylesheet" href="%s" />`, src)
+	}
+	return fmt.Sprintf(`<style type="text/css">%s</style>`, src)
+}
+
+func renderScript(src string) string {
+	if strings.HasPrefix(src, "://") || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+		return fmt.Sprintf(`<script src="%s"></script>`, src)
+	}
+	return fmt.Sprintf(`<script type="text/javascript">%s</script>`, src)
 }
