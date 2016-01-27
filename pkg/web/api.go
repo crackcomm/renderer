@@ -59,8 +59,8 @@ func WithReader(reader Middleware) Option {
 	}
 }
 
-// WithCtx - Sets API server context.
-func WithCtx(ctx context.Context) Option {
+// WithContext - Sets API server context.
+func WithContext(ctx context.Context) Option {
 	return func(o *options) {
 		o.ctx = ctx
 	}
