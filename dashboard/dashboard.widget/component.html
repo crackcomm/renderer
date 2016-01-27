@@ -27,6 +27,9 @@
 </nav>
 
 <div class="container-fluid">
+  <div>
+    {{ children }}
+  </div>
   <a href="http://127.0.0.1:6660/api/v1/render?json={{ source_component|json }}">render</a></div>
 </div>
 </body>
