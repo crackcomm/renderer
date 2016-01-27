@@ -1,11 +1,9 @@
 package web
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/rs/xhandler"
-	"golang.org/x/net/context"
 )
 
 // NewAPI - New renderer web server API handler.
@@ -13,14 +11,12 @@ import (
 //
 // Default options are:
 //
-// 	WithContext(context.Background()),
 // 	WithTimeout(time.Second * 15),
 // 	WithComponentSetter(UnmarshalFromRequest()),
 //
-func NewAPI(opts ...Option) http.Handler {
+func NewAPI(opts ...Option) xhandler.HandlerC {
 	o := &options{
 		reqTimeout: time.Second * 15,
-		ctx:        context.Background(),
 	}
 
 	for _, opt := range opts {
@@ -45,15 +41,15 @@ func NewAPI(opts ...Option) http.Handler {
 	chain.UseC(CompileFromCtx)
 	chain.UseC(RenderFromCtx)
 
-	return chain.HandlerCtx(o.ctx, xhandler.HandlerFuncC(WriteRendered))
+	return chain.HandlerCF(WriteRendered)
 }
 
 // Option - Sets web server handler options.
 type Option func(*options)
 
 type options struct {
+	// reqTimeout - HTTP request timeout.
 	reqTimeout time.Duration
-	ctx        context.Context
 
 	// componentSetter - Component setter middleware.
 	// It should set a component in context using `renderer.ComponentCtx`.
@@ -76,13 +72,6 @@ func WithComponentSetter(componentSetter Middleware) Option {
 func WithTemplateCtxSetter(templateCtxSetter Middleware) Option {
 	return func(o *options) {
 		o.templateCtxSetter = templateCtxSetter
-	}
-}
-
-// WithContext - Sets API server context.
-func WithContext(ctx context.Context) Option {
-	return func(o *options) {
-		o.ctx = ctx
 	}
 }
 

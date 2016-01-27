@@ -6,6 +6,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
+	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
 
 	"bitbucket.org/moovie/renderer/pkg/renderer"
@@ -85,15 +86,13 @@ var webCommand = cli.Command{
 		// Create a context with compiler
 		ctx = renderer.CompilerCtx(ctx, compiler)
 
-		// Create a web server http handler
-		api := web.NewAPI(
-			web.WithContext(ctx),
-		)
+		// Create API http handler
+		api := web.NewAPI()
 
 		glog.Infof("[api] starting on %s", c.String("listen-addr"))
 
 		// Start http server
-		err = http.ListenAndServe(c.String("listen-addr"), api)
+		err = http.ListenAndServe(c.String("listen-addr"), xhandler.New(ctx, api))
 		if err != nil {
 			glog.Fatalf("[api] %v", err)
 		}
