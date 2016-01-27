@@ -50,12 +50,24 @@ type options struct {
 
 	// reader - Component reader that creates context using `renderer.ComponentCtx`.
 	reader Middleware
+
+	// templateCtxSetter - Component template context setter middleware.
+	// This middleware can read context from request etc.
+	// It should set template context using `renderer.WithTemplateCtx`.
+	templateCtxSetter Middleware
 }
 
 // WithReader - Sets component reader HTTP request middleware.
 func WithReader(reader Middleware) Option {
 	return func(o *options) {
 		o.reader = reader
+	}
+}
+
+// WithCtxSetter - Sets component template context setter HTTP request middleware.
+func WithCtxSetter(templateCtxSetter Middleware) Option {
+	return func(o *options) {
+		o.templateCtxSetter = templateCtxSetter
 	}
 }
 

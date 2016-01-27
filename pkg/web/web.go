@@ -120,7 +120,8 @@ func RenderFromCtx(next xhandler.HandlerC) xhandler.HandlerC {
 			writeError(w, http.StatusBadRequest, "component not compiled")
 			return
 		}
-		res, err := renderer.Render(c)
+		t, _ := renderer.TemplateCtx(ctx)
+		res, err := renderer.Render(c, t)
 		if err != nil {
 			writeError(w, http.StatusExpectationFailed, fmt.Sprintf("render error: %v", err))
 			return
