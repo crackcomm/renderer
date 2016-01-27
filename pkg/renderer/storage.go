@@ -15,21 +15,18 @@ import (
 
 // Storage - Components storage interface.
 type Storage interface {
+	// Component - Returns component by name.
 	Component(string) (*Component, error)
-	Template(string) (template.Template, error)
-	Text(string) (template.Template, error)
-	Close() error
-}
 
-// storage - Components storage.
-type storage struct {
-	dirname string
-	events  chan notify.EventInfo
-	cache   struct {
-		components *cache.Cache
-		templates  *cache.Cache
-		files      *cache.Cache
-	}
+	// Template - Compiles template by file path and saves in cache.
+	// Returns cached template if already compiled and not changed.
+	Template(string) (template.Template, error)
+
+	// Text - Returns file content as Template interface.
+	Text(string) (template.Template, error)
+
+	// Close - Destroys caches and stops watching for changes.
+	Close() error
 }
 
 // NewStorage - Creates new components storage.
@@ -46,6 +43,17 @@ func NewStorage(dirname string, defaultExpiration time.Duration, cleanupInterval
 		return nil, err
 	}
 	return s, nil
+}
+
+// storage - Components storage.
+type storage struct {
+	dirname string
+	events  chan notify.EventInfo
+	cache   struct {
+		components *cache.Cache
+		templates  *cache.Cache
+		files      *cache.Cache
+	}
 }
 
 // Text - Returns file content as Template interface.
@@ -125,7 +133,6 @@ func (s *storage) read(path string) (body []byte, err error) {
 func (s *storage) start() (err error) {
 	path := filepath.Join(s.dirname, "...")
 	glog.Infof("[watch] start path=%q", path)
-
 	s.events = make(chan notify.EventInfo, 1)
 	err = notify.Watch(path, s.events, notify.All)
 	if err != nil {
