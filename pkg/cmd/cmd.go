@@ -69,7 +69,7 @@ var webCommand = cli.Command{
 
 		// Create a web server http handler
 		w := web.NewAPI(
-			web.WithCtx(ctx),
+			web.WithContext(ctx),
 		)
 
 		glog.Infof("[api] starting on %s", c.String("listen-addr"))
