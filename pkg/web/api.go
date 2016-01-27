@@ -72,8 +72,8 @@ func WithComponentSetter(componentSetter Middleware) Option {
 	}
 }
 
-// WithCtxSetter - Sets component template context setter HTTP request middleware.
-func WithCtxSetter(templateCtxSetter Middleware) Option {
+// WithTemplateCtxSetter - Sets component template context setter HTTP request middleware.
+func WithTemplateCtxSetter(templateCtxSetter Middleware) Option {
 	return func(o *options) {
 		o.templateCtxSetter = templateCtxSetter
 	}
