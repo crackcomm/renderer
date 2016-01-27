@@ -75,7 +75,7 @@ func renderTo(c *Compiled, ctx template.Context, main, res *Rendered) (err error
 		}
 
 		// Add resulting body to context
-		ctx[name] = r.Body
+		ctx[name] = pongo2.AsSafeValue(r.Body)
 	}
 
 	// Render `Main` component template
