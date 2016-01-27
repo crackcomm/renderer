@@ -68,7 +68,7 @@ var webCommand = cli.Command{
 		ctx = renderer.CompilerCtx(ctx, compiler)
 
 		// Create a web server http handler
-		w := web.New(
+		w := web.NewAPI(
 			web.WithCtx(ctx),
 		)
 
