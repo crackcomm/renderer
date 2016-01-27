@@ -24,10 +24,10 @@ type Component struct {
 
 	// Require - Components required by this component.
 	// Those will be rendered before and set in context under keys from map.
-	Require map[string]*Component `json:"require,omitempty"`
+	Require map[string]Component `json:"require,omitempty"`
 
 	// Context - Base context for the component.
-	Context map[string]interface{} `json:"context,omitempty"`
+	Context template.Context `json:"context,omitempty"`
 
 	// With - Like context but values should be templates.
 	With map[string]string `json:"with,omitempty"`
@@ -45,18 +45,18 @@ type Rendered struct {
 	// Scripts - List of scripts.
 	// They can be urls or list of js scripts with prefix "data:text/javascript;".
 	Scripts []string `json:"scripts,omitempty"`
-
-	// Links - List of routes(/links) pointing to files.
-	// Links map[string]string `json:"links,omitempty"`
 }
 
 // Compiled - Compiled component ready to render.
 type Compiled struct {
-	// Component - Component structure.
+	// Component - Source of the compiled component.
 	*Component
 
 	// Main - Main template compiled.
 	Main template.Template
+
+	// With - `With` templates map.
+	With template.Map
 
 	// Extends - Compiled `Extends` component.
 	Extends *Compiled
@@ -69,7 +69,4 @@ type Compiled struct {
 
 	// Require - Compiled `Require` components.
 	Require map[string]*Compiled
-
-	// With - `With` templates map.
-	With template.Map
 }

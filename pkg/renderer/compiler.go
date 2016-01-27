@@ -1,89 +1,84 @@
 package renderer
 
-import (
-	"bitbucket.org/moovie/renderer/pkg/template"
-	"golang.org/x/net/context"
-)
-
-// Compiler - Components compiler.
-type Compiler struct {
+// Compiler - Components compiler interface.
+type Compiler interface {
 	Storage
-}
 
-type compilerCtxKey struct{}
+	// Compile - Compiles a component.
+	// Expects the component to have all the required data embed or in storage.
+	Compile(*Component) (*Compiled, error)
+
+	// CompileByName - Compiles a component by name.
+	CompileByName(string) (*Compiled, error)
+
+	// CompileFromStorage - Gets component from storage by name and merges
+	// with component given in argument.
+	CompileFromStorage(*Component) (*Compiled, error)
+}
 
 // NewCompiler - Creates a new components compiler.
-func NewCompiler(s Storage) *Compiler {
-	return &Compiler{Storage: s}
+func NewCompiler(s Storage) Compiler {
+	return &compiler{Storage: s}
 }
 
-// NewContext - Creates new context with compiler.
-func NewContext(ctx context.Context, c *Compiler) context.Context {
-	return context.WithValue(ctx, compilerCtxKey{}, c)
-}
-
-// FromContext - Retrieves compiler from context.
-func FromContext(ctx context.Context) (c *Compiler, ok bool) {
-	c, ok = ctx.Value(compilerCtxKey{}).(*Compiler)
-	return
-}
-
-// CompileByName - Compiles a component by name.
-func (compiler *Compiler) CompileByName(name string) (compiled *Compiled, err error) {
-	c, err := compiler.Storage.Component(name)
-	if err != nil {
-		return
-	}
-	return compiler.Compile(c)
+type compiler struct {
+	Storage
 }
 
 // Compile - Compiles a component.
 // Expects the component to have all the required data embed or in storage.
-func (compiler *Compiler) Compile(c *Component) (compiled *Compiled, err error) {
+func (comp *compiler) Compile(c *Component) (compiled *Compiled, err error) {
 	compiled = &Compiled{Component: c}
-	err = compiler.compileTo(c, compiled)
+	err = comp.compileTo(compiled, c)
 	return
 }
 
-// CompileFromStorage -
-func (compiler *Compiler) CompileFromStorage(c *Component) (compiled *Compiled, err error) {
-	base, err := compiler.Storage.Component(c.Name)
+// CompileByName - Compiles a component by name.
+func (comp *compiler) CompileByName(name string) (compiled *Compiled, err error) {
+	c, err := comp.Storage.Component(name)
 	if err != nil {
 		return
 	}
-	compiled = &Compiled{Component: c}
-	err = compiler.compileTo(base, compiled)
+	return comp.Compile(c)
+}
+
+// CompileFromStorage - Gets component from storage by name and merges
+// with component given in argument.
+func (comp *compiler) CompileFromStorage(c *Component) (compiled *Compiled, err error) {
+	compiled, err = comp.CompileByName(c.Name)
 	if err != nil {
 		return
 	}
-	err = compiler.compileTo(c, compiled)
+	compiled.Component = c
+	err = comp.compileTo(compiled, c)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func (compiler *Compiler) compileTo(c *Component, compiled *Compiled) (err error) {
+func (comp *compiler) compileTo(compiled *Compiled, c *Component) (err error) {
+	compiled.Context = mergeCtx(compiled.Context, c.Context)
 	if c.Main != "" {
-		compiled.Main, err = parseTemplate(compiler.Storage, c.Main, c.Name)
+		compiled.Main, err = parseTemplate(comp.Storage, c.Main, c.Name)
 		if err != nil {
 			return
 		}
 	}
-	compiled.Styles, err = parseTemplates(compiler.Storage, c.Styles, c.Name)
+	compiled.Styles, err = parseTemplates(comp.Storage, c.Styles, c.Name)
 	if err != nil {
 		return
 	}
-	compiled.Scripts, err = parseTemplates(compiler.Storage, c.Scripts, c.Name)
+	compiled.Scripts, err = parseTemplates(comp.Storage, c.Scripts, c.Name)
 	if err != nil {
 		return
 	}
-	compiled.With, err = template.ParseMap(c.With)
+	compiled.With, err = mergeTemplatesMap(compiled.With, c.With)
 	if err != nil {
 		return
 	}
 	if c.Extends != "" {
-		compiled.Extends, err = compiler.CompileByName(c.Extends)
+		compiled.Extends, err = comp.CompileByName(c.Extends)
 		if err != nil {
 			return
 		}
@@ -93,7 +88,7 @@ func (compiler *Compiler) compileTo(c *Component, compiled *Compiled) (err error
 	if len(c.Require) != 0 {
 		compiled.Require = make(map[string]*Compiled)
 		for name, r := range c.Require {
-			compiled.Require[name], err = compiler.CompileFromStorage(r)
+			compiled.Require[name], err = comp.CompileFromStorage(&r)
 			if err != nil {
 				return
 			}

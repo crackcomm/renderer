@@ -13,7 +13,7 @@ $ make install
 Start API server:
 
 ```sh
-$ renderer web
+$ renderer web -dir dashboard/
 ```
 
 Render using API:
@@ -31,7 +31,7 @@ $ curl -XPOST --data '{
       }
     ]
   }
-}' http://127.0.0.1:5055/
+}' http://127.0.0.1:6660/
 ```
 
 ### Components

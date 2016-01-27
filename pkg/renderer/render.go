@@ -1,75 +1,44 @@
 package renderer
 
 import (
-	"strings"
+	"encoding/json"
 
 	"bitbucket.org/moovie/renderer/pkg/template"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/flosch/pongo2"
+	"github.com/golang/glog"
 )
 
-// RenderHTML - Renders compiled component to html.
-func RenderHTML(c *Compiled, ctx template.Context) (body string, err error) {
-	res, err := Render(c, ctx)
-	if err != nil {
-		return
-	}
-	if len(res.Styles) == 0 && len(res.Scripts) == 0 {
-		return res.Body, nil
-	}
-
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(res.Body))
-	if err != nil {
-		return
-	}
-
-	if len(res.Styles) > 0 {
-		// Find <head> element or insert if not found
-		h := doc.Find("head")
-		if h.Size() == 0 {
-			h = doc.Find("html").PrependHtml("<head></head>")
-		}
-
-		// Insert styles into head
-		for _, src := range res.Styles {
-			h.AppendHtml(renderStyle(src))
-		}
-	}
-
-	if len(res.Scripts) > 0 {
-		// Find <body> element or insert if not found
-		b := doc.Find("body")
-		if b.Size() == 0 {
-			b = doc.Find("html").AppendHtml("<body></body>")
-		}
-
-		// Insert scripts on the end of body tag
-		for _, src := range res.Scripts {
-			b.AppendHtml(renderScript(src))
-		}
-	}
-
-	return doc.Html()
-}
-
 // Render - Renders compiled component.
-func Render(c *Compiled, ctx template.Context) (res *Rendered, err error) {
-	if ctx == nil {
-		ctx = make(template.Context)
-	}
+// Only first template context is accepted.
+func Render(c *Compiled, ctxs ...template.Context) (res *Rendered, err error) {
 	res = new(Rendered)
-	err = renderTo(c, ctx, res, res)
+	var ctx template.Context
+	if len(ctxs) == 0 {
+		ctx = make(template.Context)
+	} else {
+		ctx = ctxs[0]
+	}
+	ctx["source_component"] = c.Component
+	err = renderTo(c, res, res, ctx)
 	return
 }
 
-func renderTo(c *Compiled, ctx template.Context, main, res *Rendered) (err error) {
+func renderTo(c *Compiled, main, res *Rendered, ctx template.Context) (err error) {
 	// Merge with component context
-	mergeComponentCtx(c, ctx)
+	ctx, err = mergeComponentCtx(c, ctx)
+	if err != nil {
+		return
+	}
+
+	if glog.V(3) {
+		b, _ := json.Marshal(ctx)
+		glog.Infof("[render] name=%q ctx=%s", c.Name, b)
+	}
 
 	// Render required components
 	for name, req := range c.Require {
 		r := new(Rendered)
-		err = renderTo(req, ctx, main, r)
+		err = renderTo(req, main, r, ctx)
 		if err != nil {
 			return
 		}
@@ -87,7 +56,7 @@ func renderTo(c *Compiled, ctx template.Context, main, res *Rendered) (err error
 	// Extend a template if any
 	if c.Extends != nil {
 		ctx["children"] = pongo2.AsSafeValue(res.Body)
-		err = renderTo(c.Extends, ctx, main, res)
+		err = renderTo(c.Extends, main, res, ctx)
 		if err != nil {
 			return
 		}

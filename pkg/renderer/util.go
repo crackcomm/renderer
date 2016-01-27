@@ -1,11 +1,6 @@
 package renderer
 
-import (
-	"fmt"
-	"strings"
-
-	"bitbucket.org/moovie/renderer/pkg/template"
-)
+import "bitbucket.org/moovie/renderer/pkg/template"
 
 func renderTemplates(l []template.Template, ctx template.Context) (res []string, err error) {
 	for _, tmp := range l {
@@ -18,9 +13,9 @@ func renderTemplates(l []template.Template, ctx template.Context) (res []string,
 	return
 }
 
-func mergeComponentCtx(c *Compiled, ctx template.Context) (err error) {
+func mergeComponentCtx(c *Compiled, ctx template.Context) (_ template.Context, err error) {
 	// Merge with component base context
-	mergeCtx(ctx, c.Context)
+	ctx = mergeCtx(ctx, c.Context)
 
 	// Execute component's `With` templates
 	w, err := c.With.Execute(ctx)
@@ -29,14 +24,21 @@ func mergeComponentCtx(c *Compiled, ctx template.Context) (err error) {
 	}
 
 	// Merge `With` into context
-	mergeCtx(ctx, w)
-	return
+	ctx = mergeCtx(ctx, w)
+	return ctx, nil
 }
 
-func mergeCtx(dest, source template.Context) {
+func mergeCtx(dest, source template.Context) template.Context {
+	if len(source) == 0 {
+		return dest
+	}
+	if dest == nil {
+		dest = make(template.Context)
+	}
 	for key, value := range source {
 		dest[key] = value
 	}
+	return dest
 }
 
 func mergeStringSlices(dest, source []string) []string {
@@ -64,16 +66,16 @@ func sliceHasString(slice []string, str string) bool {
 	return false
 }
 
-func renderStyle(src string) string {
-	if strings.HasPrefix(src, "://") || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
-		return fmt.Sprintf(`<link rel="stylesheet" href="%s" />`, src)
+func mergeTemplatesMap(t template.Map, m map[string]string) (_ template.Map, err error) {
+	w, err := template.ParseMap(m)
+	if err != nil {
+		return
 	}
-	return fmt.Sprintf(`<style type="text/css">%s</style>`, src)
-}
-
-func renderScript(src string) string {
-	if strings.HasPrefix(src, "://") || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
-		return fmt.Sprintf(`<script src="%s"></script>`, src)
+	if t == nil {
+		return w, nil
 	}
-	return fmt.Sprintf(`<script type="text/javascript">%s</script>`, src)
+	for k, v := range w {
+		t[k] = v
+	}
+	return t, nil
 }

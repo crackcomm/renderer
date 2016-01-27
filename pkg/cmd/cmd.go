@@ -4,14 +4,12 @@ import (
 	"net/http"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
-	"github.com/rs/xhandler"
+	"golang.org/x/net/context"
 
-	"bitbucket.org/moovie/renderer/pkg/api"
 	"bitbucket.org/moovie/renderer/pkg/renderer"
+	"bitbucket.org/moovie/renderer/pkg/web"
 )
 
 // Commands - List of renderer commands.
@@ -33,11 +31,11 @@ var webCommand = cli.Command{
 			Usage: "watch for changes in components",
 		},
 
-		// Web interface options
+		// Web server options
 		cli.StringFlag{
 			Name:  "listen-addr",
 			Usage: "web interface listening address",
-			Value: ":5055",
+			Value: "127.0.0.1:6660",
 		},
 		cli.DurationFlag{
 			Name:  "render-timeout",
@@ -46,33 +44,38 @@ var webCommand = cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) {
+		// Get components directory from --dir flag
+		// Print fatal error if not set
 		dirname := c.String("dir")
 		if dirname == "" {
 			glog.Fatal("Components directory needs to be set in --dir.")
 		}
 
+		// Create a new storage in directory from --dir flag
 		storage, err := renderer.NewStorage(dirname, 15*time.Minute, 5*time.Minute)
 		if err != nil {
 			glog.Fatalf("[storage] %v", err)
 		}
 		defer storage.Close()
 
+		// Create a compiler from storage
 		compiler := renderer.NewCompiler(storage)
 
-		var chain xhandler.Chain
+		// Base context
+		ctx := context.Background()
 
-		// Add close notifier handler so context is cancelled when the client closes
-		// the connection
-		chain.UseC(xhandler.CloseHandler)
+		// Create a context with compiler
+		ctx = renderer.CompilerCtx(ctx, compiler)
 
-		// Add timeout handler
-		chain.UseC(xhandler.TimeoutHandler(c.Duration("render-timeout")))
-
-		ctx := renderer.NewContext(context.Background(), compiler)
-		handler := chain.HandlerCtx(ctx, xhandler.HandlerFuncC(api.Handler))
+		// Create a web server http handler
+		w := web.New(
+			web.WithCtx(ctx),
+		)
 
 		glog.Infof("[api] starting on %s", c.String("listen-addr"))
-		err = http.ListenAndServe(c.String("listen-addr"), handler)
+
+		// Start http server
+		err = http.ListenAndServe(c.String("listen-addr"), w)
 		if err != nil {
 			glog.Fatalf("[api] %v", err)
 		}
