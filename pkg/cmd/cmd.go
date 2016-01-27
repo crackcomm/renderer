@@ -30,6 +30,16 @@ var webCommand = cli.Command{
 			Name:  "watch",
 			Usage: "watch for changes in components",
 		},
+		cli.DurationFlag{
+			Name:  "cache-expiration",
+			Usage: "cache expiration time",
+			Value: 15 * time.Minute,
+		},
+		cli.DurationFlag{
+			Name:  "cache-cleanup",
+			Usage: "cache cleanup interval",
+			Value: 5 * time.Minute,
+		},
 
 		// Web server options
 		cli.StringFlag{
@@ -52,7 +62,7 @@ var webCommand = cli.Command{
 		}
 
 		// Create a new storage in directory from --dir flag
-		storage, err := renderer.NewStorage(dirname, 15*time.Minute, 5*time.Minute)
+		storage, err := renderer.NewStorage(dirname, c.Duration("cache-expiration"), c.Duration("cache-cleanup"))
 		if err != nil {
 			glog.Fatalf("[storage] %v", err)
 		}
@@ -68,14 +78,14 @@ var webCommand = cli.Command{
 		ctx = renderer.CompilerCtx(ctx, compiler)
 
 		// Create a web server http handler
-		w := web.NewAPI(
+		api := web.NewAPI(
 			web.WithContext(ctx),
 		)
 
 		glog.Infof("[api] starting on %s", c.String("listen-addr"))
 
 		// Start http server
-		err = http.ListenAndServe(c.String("listen-addr"), w)
+		err = http.ListenAndServe(c.String("listen-addr"), api)
 		if err != nil {
 			glog.Fatalf("[api] %v", err)
 		}
