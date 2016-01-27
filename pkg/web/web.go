@@ -26,9 +26,24 @@ import (
 	"golang.org/x/net/context"
 )
 
+// Middleware - HTTP Middleware function.
+type Middleware func(next xhandler.HandlerC) xhandler.HandlerC
+
+// UnmarshalFromRequest - Unmarshals component using `UnmarshalFromQuery` on `GET`
+// method and `` on `POST` method.
+func UnmarshalFromRequest() Middleware {
+	get, post := UnmarshalFromQuery("GET"), UnmarshalFromBody("POST")
+	return func(next xhandler.HandlerC) xhandler.HandlerC {
+		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+			get(next).ServeHTTPC(ctx, w, r)
+			post(next).ServeHTTPC(ctx, w, r)
+		})
+	}
+}
+
 // UnmarshalFromQuery - Unmarshals component from `json` query on certain methods.
 // Stores result in context to be retrieved with `renderer.ComponentFromCtx`.
-func UnmarshalFromQuery(methods ...string) func(next xhandler.HandlerC) xhandler.HandlerC {
+func UnmarshalFromQuery(methods ...string) Middleware {
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			if !methodInList(r.Method, methods) {
@@ -54,7 +69,7 @@ func UnmarshalFromQuery(methods ...string) func(next xhandler.HandlerC) xhandler
 
 // UnmarshalFromBody - Unmarshals component from request bodyCompileFromCtx() on certain methods.
 // Stores result in context to be retrieved with `renderer.ComponentFromCtx`.
-func UnmarshalFromBody(methods ...string) func(next xhandler.HandlerC) xhandler.HandlerC {
+func UnmarshalFromBody(methods ...string) Middleware {
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			if !methodInList(r.Method, methods) {

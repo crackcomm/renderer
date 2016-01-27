@@ -31,8 +31,10 @@ func NewAPI(opts ...Option) http.Handler {
 	chain.UseC(xhandler.TimeoutHandler(o.reqTimeout))
 
 	// Construct API from middlewares
-	chain.UseC(UnmarshalFromQuery("GET"))
-	chain.UseC(UnmarshalFromBody("POST"))
+	if o.reader == nil {
+		o.reader = UnmarshalFromRequest()
+	}
+	chain.UseC(o.reader)
 	chain.UseC(CompileFromCtx)
 	chain.UseC(RenderFromCtx)
 
@@ -45,6 +47,16 @@ type Option func(*options)
 type options struct {
 	reqTimeout time.Duration
 	ctx        context.Context
+
+	// reader - Component reader that creates context using `renderer.ComponentCtx`.
+	reader Middleware
+}
+
+// WithReader - Sets component reader HTTP request middleware.
+func WithReader(reader Middleware) Option {
+	return func(o *options) {
+		o.reader = reader
+	}
 }
 
 // WithCtx - Sets API server context.
