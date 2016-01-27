@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"bitbucket.org/moovie/renderer/pkg/template"
+	"bitbucket.org/moovie/util/template"
 )
 
 // parseTemplate - Parse template from string.

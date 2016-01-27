@@ -18,11 +18,15 @@ import (
 	"net/http"
 	"strings"
 
-	"bitbucket.org/moovie/renderer/pkg/renderer"
-
 	"github.com/golang/glog"
-	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
+
+	"github.com/rs/xhandler"
+
+	"bitbucket.org/moovie/renderer/pkg/renderer"
+	"bitbucket.org/moovie/util/httputil"
+	"bitbucket.org/moovie/util/stringslice"
+	// "bitbucket.org/moovie/util/httputil"
 )
 
 // Middleware - HTTP Middleware function.
@@ -45,19 +49,19 @@ func UnmarshalFromRequest() Middleware {
 func UnmarshalFromQuery(methods ...string) Middleware {
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			if !methodInList(r.Method, methods) {
+			if !stringslice.Contain(methods, r.Method) {
 				next.ServeHTTPC(ctx, w, r)
 				return
 			}
 			body := []byte(r.URL.Query().Get("json"))
 			if len(body) == 0 {
-				writeError(w, http.StatusBadRequest, "no component in json query parameter")
+				httputil.WriteError(w, r, http.StatusBadRequest, "no component in json query parameter")
 				return
 			}
 			c := new(renderer.Component)
 			err := json.Unmarshal(body, c)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err.Error())
+				httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
 				return
 			}
 			ctx = renderer.ComponentCtx(ctx, c)
@@ -71,14 +75,14 @@ func UnmarshalFromQuery(methods ...string) Middleware {
 func UnmarshalFromBody(methods ...string) Middleware {
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			if !methodInList(r.Method, methods) {
+			if !stringslice.Contain(methods, r.Method) {
 				next.ServeHTTPC(ctx, w, r)
 				return
 			}
 			c := new(renderer.Component)
 			err := json.NewDecoder(r.Body).Decode(c)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err.Error())
+				httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
 				return
 			}
 			ctx = renderer.ComponentCtx(ctx, c)
@@ -93,17 +97,17 @@ func CompileFromCtx(next xhandler.HandlerC) xhandler.HandlerC {
 	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		c, ok := renderer.ComponentFromCtx(ctx)
 		if !ok {
-			writeError(w, http.StatusBadRequest, "no component set")
+			httputil.WriteError(w, r, http.StatusBadRequest, "no component set")
 			return
 		}
 		compiler, ok := renderer.CompilerFromCtx(ctx)
 		if !ok {
-			writeError(w, http.StatusInternalServerError, "compiler not found")
+			httputil.WriteError(w, r, http.StatusInternalServerError, "compiler not found")
 			return
 		}
 		compiled, err := compiler.CompileFromStorage(c)
 		if err != nil {
-			writeError(w, http.StatusExpectationFailed, fmt.Sprintf("compile error: %v", err))
+			httputil.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("compile error: %v", err))
 			return
 		}
 		ctx = renderer.CompiledCtx(ctx, compiled)
@@ -117,13 +121,13 @@ func RenderFromCtx(next xhandler.HandlerC) xhandler.HandlerC {
 	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		c, ok := renderer.CompiledFromCtx(ctx)
 		if !ok {
-			writeError(w, http.StatusBadRequest, "component not compiled")
+			httputil.WriteError(w, r, http.StatusBadRequest, "component not compiled")
 			return
 		}
 		t, _ := renderer.TemplateCtx(ctx)
 		res, err := renderer.Render(c, t)
 		if err != nil {
-			writeError(w, http.StatusExpectationFailed, fmt.Sprintf("render error: %v", err))
+			httputil.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("render error: %v", err))
 			return
 		}
 		ctx = renderer.RenderedCtx(ctx, res)
@@ -145,7 +149,7 @@ func WriteRendered(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 func WriteRenderedJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	res, ok := renderer.RenderedFromCtx(ctx)
 	if !ok {
-		writeError(w, http.StatusBadRequest, "component not rendered")
+		httputil.WriteError(w, r, http.StatusBadRequest, "component not rendered")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -158,7 +162,7 @@ func WriteRenderedJSON(ctx context.Context, w http.ResponseWriter, r *http.Reque
 func WriteRenderedHTML(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	res, ok := renderer.RenderedFromCtx(ctx)
 	if !ok {
-		writeError(w, http.StatusBadRequest, "component not rendered")
+		httputil.WriteError(w, r, http.StatusBadRequest, "component not rendered")
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")
@@ -168,25 +172,4 @@ func WriteRenderedHTML(ctx context.Context, w http.ResponseWriter, r *http.Reque
 		return
 	}
 	w.Write([]byte(body))
-}
-
-func methodInList(method string, list []string) bool {
-	for _, m := range list {
-		if m == method {
-			return true
-		}
-	}
-	return false
-}
-
-func writeError(w http.ResponseWriter, code int, err string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(struct {
-		Msg  string `json:"message,omitempty"`
-		Code int    `json:"code,omitempety"`
-	}{
-		Msg:  err,
-		Code: code,
-	})
 }

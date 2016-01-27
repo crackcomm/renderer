@@ -1,6 +1,6 @@
 package renderer
 
-import "bitbucket.org/moovie/renderer/pkg/template"
+import "bitbucket.org/moovie/util/template"
 
 // Component - Component definition.
 type Component struct {

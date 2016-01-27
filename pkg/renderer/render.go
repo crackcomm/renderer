@@ -3,15 +3,17 @@ package renderer
 import (
 	"encoding/json"
 
-	"bitbucket.org/moovie/renderer/pkg/template"
 	"github.com/flosch/pongo2"
 	"github.com/golang/glog"
+
+	"bitbucket.org/moovie/util/stringslice"
+	"bitbucket.org/moovie/util/template"
 )
 
 // Render - Renders compiled component.
 // Only first template context is accepted.
+// Sets source component in template context under key `source_component`.
 func Render(c *Compiled, ctxs ...template.Context) (res *Rendered, err error) {
-	res = new(Rendered)
 	var ctx template.Context
 	if len(ctxs) == 0 || ctxs[0] == nil {
 		ctx = make(template.Context)
@@ -19,13 +21,17 @@ func Render(c *Compiled, ctxs ...template.Context) (res *Rendered, err error) {
 		ctx = ctxs[0]
 	}
 	ctx["source_component"] = c.Component
-	err = renderTo(c, res, res, ctx)
+	res = new(Rendered)
+	err = renderComponent(c, res, res, ctx)
 	return
 }
 
-func renderTo(c *Compiled, main, res *Rendered, ctx template.Context) (err error) {
-	// Merge with component context
-	ctx, err = mergeComponentCtx(c, ctx)
+// renderComponent - Renders a component.
+// `main` is where `Styles` and `Scripts` are inserted.
+// `res` is where `Body` is inserted.
+func renderComponent(c *Compiled, main, res *Rendered, ctx template.Context) (err error) {
+	// Set component defaults
+	ctx, err = withComponentDefaults(c, ctx)
 	if err != nil {
 		return
 	}
@@ -38,7 +44,7 @@ func renderTo(c *Compiled, main, res *Rendered, ctx template.Context) (err error
 	// Render required components
 	for name, req := range c.Require {
 		r := new(Rendered)
-		err = renderTo(req, main, r, ctx)
+		err = renderComponent(req, main, r, ctx)
 		if err != nil {
 			return
 		}
@@ -56,29 +62,38 @@ func renderTo(c *Compiled, main, res *Rendered, ctx template.Context) (err error
 	// Extend a template if any
 	if c.Extends != nil {
 		ctx["children"] = pongo2.AsSafeValue(res.Body)
-		err = renderTo(c.Extends, main, res, ctx)
+		err = renderComponent(c.Extends, main, res, ctx)
 		if err != nil {
 			return
 		}
 	}
 
-	// Render component styles
-	tmp, err := renderTemplates(c.Styles, ctx)
+	// Render component styles and scripts
+	err = renderAssets(c, main, ctx)
 	if err != nil {
 		return
 	}
 
-	// Merge component scripts into main result
-	main.Styles = mergeStringSlices(main.Styles, tmp)
+	return
+}
+
+func renderAssets(c *Compiled, res *Rendered, ctx template.Context) (err error) {
+	// Render component styles
+	tmp, err := template.ExecuteList(c.Styles, ctx)
+	if err != nil {
+		return
+	}
+
+	// Merge component scripts into result
+	res.Styles = stringslice.MergeUnique(res.Styles, tmp)
 
 	// Render component scripts
-	tmp, err = renderTemplates(c.Scripts, ctx)
+	tmp, err = template.ExecuteList(c.Scripts, ctx)
 	if err != nil {
 		return
 	}
 
-	// Merge component scripts into main result
-	main.Scripts = mergeStringSlices(main.Scripts, tmp)
-
+	// Merge component scripts into result
+	res.Scripts = stringslice.MergeUnique(res.Scripts, tmp)
 	return
 }

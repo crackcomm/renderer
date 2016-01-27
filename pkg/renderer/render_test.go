@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"bitbucket.org/moovie/renderer/pkg/template"
+	"bitbucket.org/moovie/util/template"
 
 	. "gopkg.in/check.v1"
 )

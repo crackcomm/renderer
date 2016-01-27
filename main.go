@@ -9,6 +9,8 @@ import (
 	"github.com/golang/glog"
 
 	"bitbucket.org/moovie/renderer/pkg/cmd"
+
+	_ "bitbucket.org/moovie/util/pongo2filters"
 )
 
 func main() {

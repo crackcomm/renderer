@@ -1,7 +1,7 @@
 package renderer
 
 import (
-	"bitbucket.org/moovie/renderer/pkg/template"
+	"bitbucket.org/moovie/util/template"
 	"golang.org/x/net/context"
 )
 

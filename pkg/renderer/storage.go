@@ -10,7 +10,9 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/rjeczalik/notify"
 
-	"bitbucket.org/moovie/renderer/pkg/template"
+	"bitbucket.org/moovie/util/whitespaces"
+
+	"bitbucket.org/moovie/util/template"
 )
 
 // Storage - Components storage interface.
@@ -135,7 +137,7 @@ func (s *storage) read(path string) (body []byte, err error) {
 		return
 	}
 	if s.opts.removeWhitespace {
-		body = template.CleanWhitespaces(body)
+		body = whitespaces.Clean(body)
 	}
 	s.cache.files.Set(path, body, cache.DefaultExpiration)
 	return

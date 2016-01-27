@@ -58,25 +58,36 @@ func (comp *compiler) CompileFromStorage(c *Component) (compiled *Compiled, err 
 }
 
 func (comp *compiler) compileTo(compiled *Compiled, c *Component) (err error) {
-	compiled.Context = mergeCtx(compiled.Context, c.Context)
+	// Set defaults from base component context
+	compiled.Context = compiled.Context.WithDefaults(c.Context)
+
+	// Compile main component template if not empty
 	if c.Main != "" {
 		compiled.Main, err = parseTemplate(comp.Storage, c.Main, c.Name)
 		if err != nil {
 			return
 		}
 	}
+
+	// Parse urls and compile styles templates
 	compiled.Styles, err = parseTemplates(comp.Storage, c.Styles, c.Name)
 	if err != nil {
 		return
 	}
+
+	// Parse urls and compile scripts templates
 	compiled.Scripts, err = parseTemplates(comp.Storage, c.Scripts, c.Name)
 	if err != nil {
 		return
 	}
-	compiled.With, err = mergeTemplatesMap(compiled.With, c.With)
+
+	// Compile `With` templates map and merge into `compiled`
+	compiled.With, err = compiled.With.ParseAndMerge(c.With)
 	if err != nil {
 		return
 	}
+
+	// Compile a component which this one `extends`
 	if c.Extends != "" {
 		compiled.Extends, err = comp.CompileByName(c.Extends)
 		if err != nil {
@@ -85,14 +96,15 @@ func (comp *compiler) compileTo(compiled *Compiled, c *Component) (err error) {
 	}
 
 	// Compile required components
-	if len(c.Require) != 0 {
-		compiled.Require = make(map[string]*Compiled)
-		for name, r := range c.Require {
-			compiled.Require[name], err = comp.CompileFromStorage(&r)
-			if err != nil {
-				return
-			}
+	for name, r := range c.Require {
+		req, err := comp.CompileFromStorage(&r)
+		if err != nil {
+			return err
 		}
+		if compiled.Require == nil {
+			compiled.Require = make(map[string]*Compiled)
+		}
+		compiled.Require[name] = req
 	}
 
 	return
