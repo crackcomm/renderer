@@ -13,7 +13,7 @@ import (
 func Render(c *Compiled, ctxs ...template.Context) (res *Rendered, err error) {
 	res = new(Rendered)
 	var ctx template.Context
-	if len(ctxs) == 0 {
+	if len(ctxs) == 0 || ctxs[0] == nil {
 		ctx = make(template.Context)
 	} else {
 		ctx = ctxs[0]
