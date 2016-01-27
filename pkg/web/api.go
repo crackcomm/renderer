@@ -10,6 +10,13 @@ import (
 
 // NewAPI - New renderer web server API handler.
 // Context should have a compiler set with `renderer.NewContext`.
+//
+// Default options are:
+//
+// 	WithContext(context.Background()),
+// 	WithTimeout(time.Second * 15),
+// 	WithComponentSetter(UnmarshalFromRequest()),
+//
 func NewAPI(opts ...Option) http.Handler {
 	o := &options{
 		reqTimeout: time.Second * 15,
@@ -31,10 +38,10 @@ func NewAPI(opts ...Option) http.Handler {
 	chain.UseC(xhandler.TimeoutHandler(o.reqTimeout))
 
 	// Construct API from middlewares
-	if o.reader == nil {
-		o.reader = UnmarshalFromRequest()
+	if o.componentSetter == nil {
+		o.componentSetter = UnmarshalFromRequest()
 	}
-	chain.UseC(o.reader)
+	chain.UseC(o.componentSetter)
 	chain.UseC(CompileFromCtx)
 	chain.UseC(RenderFromCtx)
 
@@ -48,8 +55,9 @@ type options struct {
 	reqTimeout time.Duration
 	ctx        context.Context
 
-	// reader - Component reader that creates context using `renderer.ComponentCtx`.
-	reader Middleware
+	// componentSetter - Component setter middleware.
+	// It should set a component in context using `renderer.ComponentCtx`.
+	componentSetter Middleware
 
 	// templateCtxSetter - Component template context setter middleware.
 	// This middleware can read context from request etc.
@@ -57,10 +65,10 @@ type options struct {
 	templateCtxSetter Middleware
 }
 
-// WithReader - Sets component reader HTTP request middleware.
-func WithReader(reader Middleware) Option {
+// WithComponentSetter - Sets component reader HTTP request middleware.
+func WithComponentSetter(componentSetter Middleware) Option {
 	return func(o *options) {
-		o.reader = reader
+		o.componentSetter = componentSetter
 	}
 }
 
