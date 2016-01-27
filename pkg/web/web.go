@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"bitbucket.org/moovie/renderer/pkg/renderer"
-	"bitbucket.org/moovie/renderer/pkg/template"
 
 	"github.com/golang/glog"
 	"github.com/rs/xhandler"
@@ -167,7 +166,7 @@ func WriteRenderedHTML(ctx context.Context, w http.ResponseWriter, r *http.Reque
 		http.Error(w, fmt.Sprintf("html error: %v", err), http.StatusExpectationFailed)
 		return
 	}
-	w.Write(template.CleanWhitespaces([]byte(body)))
+	w.Write([]byte(body))
 }
 
 func methodInList(method string, list []string) bool {

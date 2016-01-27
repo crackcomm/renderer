@@ -30,26 +30,35 @@ type Storage interface {
 }
 
 // NewStorage - Creates new components storage.
-func NewStorage(dirname string, defaultExpiration time.Duration, cleanupInterval time.Duration) (Storage, error) {
-	dirname, err := filepath.Abs(dirname)
-	if err != nil {
-		return nil, err
+func NewStorage(opts ...StorageOption) (_ Storage, err error) {
+	o := &storageOptions{
+		cacheExpiration: 5 * time.Minute,
+		cleanupInterval: 1 * time.Minute,
 	}
-	s := &storage{dirname: dirname}
-	s.cache.components = cache.New(defaultExpiration, cleanupInterval)
-	s.cache.templates = cache.New(defaultExpiration, cleanupInterval)
-	s.cache.files = cache.New(defaultExpiration, cleanupInterval)
-	if err := s.start(); err != nil {
-		return nil, err
+	for _, opt := range opts {
+		opt(o)
+	}
+	o.dirname, err = filepath.Abs(o.dirname)
+	if err != nil {
+		return
+	}
+	s := &storage{opts: o}
+	s.cache.components = cache.New(o.cacheExpiration, o.cleanupInterval)
+	s.cache.templates = cache.New(o.cacheExpiration, o.cleanupInterval)
+	s.cache.files = cache.New(o.cacheExpiration, o.cleanupInterval)
+	err = s.start()
+	if err != nil {
+		return
 	}
 	return s, nil
 }
 
 // storage - Components storage.
 type storage struct {
-	dirname string
-	events  chan notify.EventInfo
-	cache   struct {
+	opts *storageOptions
+
+	events chan notify.EventInfo
+	cache  struct {
 		components *cache.Cache
 		templates  *cache.Cache
 		files      *cache.Cache
@@ -58,7 +67,7 @@ type storage struct {
 
 // Text - Returns file content as Template interface.
 func (s *storage) Text(path string) (t template.Template, err error) {
-	path = filepath.Join(s.dirname, path)
+	path = filepath.Join(s.opts.dirname, path)
 	body, err := s.read(path)
 	if err != nil {
 		return
@@ -69,7 +78,7 @@ func (s *storage) Text(path string) (t template.Template, err error) {
 // Template - Compiles template by file path and saves in cache.
 // Returns cached template if already compiled and not changed.
 func (s *storage) Template(path string) (t template.Template, err error) {
-	path = filepath.Join(s.dirname, path)
+	path = filepath.Join(s.opts.dirname, path)
 	if tmp, ok := s.cache.templates.Get(path); ok {
 		return tmp.(template.Template), nil
 	}
@@ -87,7 +96,7 @@ func (s *storage) Template(path string) (t template.Template, err error) {
 
 // Component - Returns component by name.
 func (s *storage) Component(name string) (c *Component, err error) {
-	path := filepath.Join(s.dirname, name, "component.json")
+	path := filepath.Join(s.opts.dirname, name, "component.json")
 	if tmp, ok := s.cache.components.Get(path); ok {
 		return tmp.(*Component), nil
 	}
@@ -125,13 +134,16 @@ func (s *storage) read(path string) (body []byte, err error) {
 	if err != nil {
 		return
 	}
+	if s.opts.removeWhitespace {
+		body = template.CleanWhitespaces(body)
+	}
 	s.cache.files.Set(path, body, cache.DefaultExpiration)
 	return
 }
 
 // start - Starts watching for file changes in a goroutine.
 func (s *storage) start() (err error) {
-	path := filepath.Join(s.dirname, "...")
+	path := filepath.Join(s.opts.dirname, "...")
 	glog.Infof("[watch] start path=%q", path)
 	s.events = make(chan notify.EventInfo, 1)
 	err = notify.Watch(path, s.events, notify.All)
