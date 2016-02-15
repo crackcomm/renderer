@@ -143,3 +143,7 @@ Compiling & Rendering:
 3. compiler [if not cached: compile component]
 4. compiler [if not cached: cache compiled component]
 5. compiler [return compilation result]
+
+## License
+
+Apache 2.0
