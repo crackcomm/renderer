@@ -1,6 +1,10 @@
 # Renderer
 
+[![GoDoc](https://godoc.org/github.com/crackcomm/renderer?status.svg)](https://godoc.org/github.com/crackcomm/renderer)
+
 ## Usage
+
+Documentation for this software is not planned.
 
 ### Installation
 
@@ -13,7 +17,9 @@ $ go get -u github.com/crackcomm/renderer
 Start API server:
 
 ```sh
-$ renderer web -dir dashboard/
+$ renderer web -watch -dir dashboard/
+$ # With routes
+$ renderer web -watch -dir ./dashboard/ -routes ./dashboard/routes.yml
 ```
 
 Render using API:

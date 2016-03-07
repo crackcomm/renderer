@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/crackcomm/renderer/pkg/renderer"
+	"github.com/crackcomm/renderer/pkg/routes"
 	"github.com/crackcomm/renderer/pkg/web"
 )
 
@@ -23,6 +24,10 @@ var webCommand = cli.Command{
 	Usage: "starts renderer web API",
 	Flags: []cli.Flag{
 		// Compiler options
+		cli.StringFlag{
+			Name:  "routes",
+			Usage: "file containing routes in yaml format",
+		},
 		cli.StringFlag{
 			Name:  "dir",
 			Usage: "directory containing components",
@@ -87,10 +92,25 @@ var webCommand = cli.Command{
 		// Create a context with compiler
 		ctx = renderer.CompilerCtx(ctx, compiler)
 
-		// Create API http handler
-		api := web.New()
-
 		glog.Infof("[api] starting on %s", c.String("listen-addr"))
+
+		// Start serving routes if set
+		var api xhandler.HandlerC
+		if fname := c.String("routes"); fname != "" {
+			// Read routes from file
+			r, err := routes.FromFile(fname)
+			if err != nil {
+				glog.Fatalf("[routes] %v", err)
+			}
+
+			// Turn routes into HTTP handler
+			api, err = r.Chain()
+			if err != nil {
+				glog.Fatalf("[routes] %v", err)
+			}
+		} else {
+			api = web.New()
+		}
 
 		// Start http server
 		err = http.ListenAndServe(c.String("listen-addr"), xhandler.New(ctx, api))

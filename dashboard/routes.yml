@@ -1,0 +1,12 @@
+
+GET /:test_id:
+  component:
+    name: dashboard.components
+    context:
+      components:
+      - name: test1
+      - name: test2
+      - name: test3
+      - name: test4
+    with:
+      title: "ID: {{ param_test_id }}  URL: {{ request.URL.RequestURI }}"
