@@ -1,9 +1,15 @@
 package web
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/rs/xhandler"
+	"golang.org/x/net/context"
+
+	"bitbucket.org/moovie/util/template"
+
+	"github.com/crackcomm/renderer/pkg/renderer"
 )
 
 // New - New renderer web server API handler.
@@ -16,34 +22,28 @@ import (
 //
 func New(opts ...Option) xhandler.HandlerC {
 	o := &options{
-		reqTimeout: time.Second * 15,
+		reqTimeout:      time.Second * 15,
+		componentSetter: UnmarshalFromRequest,
 	}
+	o.templateCtxSetter = defaultCtxSetter(o)
 
 	for _, opt := range opts {
 		opt(o)
 	}
 
-	// Create a Chain of http handlers
 	var chain xhandler.Chain
-
-	// Add close notifier handler so context is cancelled when the client closes
-	// the connection
 	chain.UseC(xhandler.CloseHandler)
-
-	// Add timeout handler
 	chain.UseC(xhandler.TimeoutHandler(o.reqTimeout))
-
-	// Construct API from middlewares
-	if o.componentSetter == nil {
-		o.componentSetter = UnmarshalFromRequest()
-	}
 	chain.UseC(o.componentSetter)
-	if o.templateCtxSetter != nil {
-		chain.UseC(o.templateCtxSetter)
+	chain.UseC(o.templateCtxSetter)
+	for _, m := range o.middlewares {
+		chain.UseC(m)
 	}
 	chain.UseC(CompileFromCtx)
 	chain.UseC(RenderFromCtx)
-
+	if o.alwaysHTML {
+		return chain.HandlerCF(WriteRenderedHTML)
+	}
 	return chain.HandlerCF(WriteRendered)
 }
 
@@ -62,6 +62,16 @@ type options struct {
 	// This middleware can read context from request etc.
 	// It should set template context using `renderer.WithTemplateCtx`.
 	templateCtxSetter Middleware
+
+	// defaultCtx - Default template context.
+	// Used only when no template context setter is used.
+	defaultCtx template.Context
+
+	// alwaysHTML - Responds with html always when true.
+	alwaysHTML bool
+
+	// middlewares - List of middlewares.
+	middlewares []Middleware
 }
 
 // WithComponentSetter - Sets component reader HTTP request middleware.
@@ -82,5 +92,41 @@ func WithTemplateCtxSetter(templateCtxSetter Middleware) Option {
 func WithTimeout(t time.Duration) Option {
 	return func(o *options) {
 		o.reqTimeout = t
+	}
+}
+
+// WithAlwaysHTML - Responds with html only when enabled.
+func WithAlwaysHTML(enable ...bool) Option {
+	return func(o *options) {
+		if len(enable) == 0 {
+			o.alwaysHTML = true
+		} else {
+			o.alwaysHTML = enable[0]
+		}
+	}
+}
+
+// WithDefaultTemplateCtx - Sets default template context.
+func WithDefaultTemplateCtx(ctx template.Context) Option {
+	return func(o *options) {
+		o.defaultCtx = ctx
+	}
+}
+
+// WithMiddleware - Adds a middleware.
+func WithMiddleware(m Middleware) Option {
+	return func(o *options) {
+		o.middlewares = append(o.middlewares, m)
+	}
+}
+
+func defaultCtxSetter(o *options) Middleware {
+	return func(next xhandler.HandlerC) xhandler.HandlerC {
+		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+			if _, ok := renderer.TemplateCtx(ctx); !ok && o.defaultCtx != nil {
+				ctx = renderer.WithTemplateCtx(ctx, o.defaultCtx)
+			}
+			next.ServeHTTPC(ctx, w, r)
+		})
 	}
 }

@@ -46,7 +46,11 @@ func ComponentMiddleware(c *renderer.Component) Middleware {
 
 // UnmarshalFromRequest - Unmarshals component using `UnmarshalFromQuery` on `GET`
 // method and `` on `POST` method.
-func UnmarshalFromRequest() Middleware {
+var UnmarshalFromRequest = NewUnmarshalFromRequest()
+
+// NewUnmarshalFromRequest - Unmarshals component using `UnmarshalFromQuery` on `GET`
+// method and `` on `POST` method.
+func NewUnmarshalFromRequest() Middleware {
 	get, post := UnmarshalFromQuery("GET"), UnmarshalFromBody("POST")
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
