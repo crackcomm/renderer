@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -48,9 +49,11 @@ func NewStorage(opts ...StorageOption) (_ Storage, err error) {
 	s.cache.components = cache.New(o.cacheExpiration, o.cleanupInterval)
 	s.cache.templates = cache.New(o.cacheExpiration, o.cleanupInterval)
 	s.cache.files = cache.New(o.cacheExpiration, o.cleanupInterval)
-	err = s.start()
-	if err != nil {
-		return
+	if o.watchingChanges {
+		err = s.start()
+		if err != nil {
+			return
+		}
 	}
 	return s, nil
 }
@@ -146,7 +149,6 @@ func (s *storage) read(path string) (body []byte, err error) {
 // start - Starts watching for file changes in a goroutine.
 func (s *storage) start() (err error) {
 	path := filepath.Join(s.opts.dirname, "...")
-	glog.Infof("[watch] start path=%q", path)
 	s.events = make(chan notify.EventInfo, 1)
 	err = notify.Watch(path, s.events, notify.All)
 	if err != nil {
@@ -159,8 +161,15 @@ func (s *storage) start() (err error) {
 // watch - Watches for changes in templates files.
 // If change event is emitted, compiled template is deleted from cache.
 func (s *storage) watch() {
+	glog.Info("[watch] started")
+	base, _ := filepath.Abs(s.opts.dirname)
 	for event := range s.events {
-		glog.Infof("[watch] event=%q path=%q", event.Event(), event.Path())
+		path := event.Path()
+		if p, err := filepath.Rel(base, path); err == nil {
+			path = p
+		}
+		path = strings.Replace(path, "\\", "/", -1)
+		glog.Infof("[change] %s", path)
 		s.cache.files.Delete(event.Path())
 		s.cache.templates.Delete(event.Path())
 		s.cache.components.Delete(event.Path())

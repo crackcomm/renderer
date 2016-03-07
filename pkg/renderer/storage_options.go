@@ -10,6 +10,18 @@ type storageOptions struct {
 	cacheExpiration  time.Duration
 	cleanupInterval  time.Duration
 	removeWhitespace bool
+	watchingChanges  bool
+}
+
+// WithWatching - Enables storage watching for changes.
+func WithWatching(enable ...bool) StorageOption {
+	return func(o *storageOptions) {
+		if len(enable) >= 1 {
+			o.watchingChanges = enable[0]
+		} else {
+			o.watchingChanges = true
+		}
+	}
 }
 
 // WithDir - Sets storage directory.
