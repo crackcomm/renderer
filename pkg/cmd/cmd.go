@@ -70,6 +70,7 @@ var webCommand = cli.Command{
 			renderer.WithDir(c.String("dir")),
 			renderer.WithCacheExpiration(c.Duration("cache-expiration")),
 			renderer.WithCacheCleanupInterval(c.Duration("cache-cleanup")),
+			renderer.WithWatching(c.Bool("watch")),
 			renderer.WithWhitespaceRemoval(c.Bool("compress")),
 		)
 		if err != nil {
@@ -87,7 +88,7 @@ var webCommand = cli.Command{
 		ctx = renderer.CompilerCtx(ctx, compiler)
 
 		// Create API http handler
-		api := web.NewAPI()
+		api := web.New()
 
 		glog.Infof("[api] starting on %s", c.String("listen-addr"))
 

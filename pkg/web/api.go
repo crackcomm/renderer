@@ -6,7 +6,7 @@ import (
 	"github.com/rs/xhandler"
 )
 
-// NewAPI - New renderer web server API handler.
+// New - New renderer web server API handler.
 // Context should have a compiler set with `renderer.NewContext`.
 //
 // Default options are:
@@ -14,7 +14,7 @@ import (
 // 	WithTimeout(time.Second * 15),
 // 	WithComponentSetter(UnmarshalFromRequest()),
 //
-func NewAPI(opts ...Option) xhandler.HandlerC {
+func New(opts ...Option) xhandler.HandlerC {
 	o := &options{
 		reqTimeout: time.Second * 15,
 	}
