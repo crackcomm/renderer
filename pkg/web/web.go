@@ -23,10 +23,10 @@ import (
 
 	"github.com/rs/xhandler"
 
-	"bitbucket.org/moovie/renderer/pkg/renderer"
 	"bitbucket.org/moovie/util/httputil"
 	"bitbucket.org/moovie/util/stringslice"
-	// "bitbucket.org/moovie/util/httputil"
+
+	"bitbucket.org/moovie/renderer/pkg/renderer"
 )
 
 // Middleware - HTTP Middleware function.
@@ -38,8 +38,11 @@ func UnmarshalFromRequest() Middleware {
 	get, post := UnmarshalFromQuery("GET"), UnmarshalFromBody("POST")
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			get(next).ServeHTTPC(ctx, w, r)
-			post(next).ServeHTTPC(ctx, w, r)
+			if r.Method == "GET" {
+				get(next).ServeHTTPC(ctx, w, r)
+			} else if r.Method == "POST" {
+				post(next).ServeHTTPC(ctx, w, r)
+			}
 		})
 	}
 }
@@ -49,7 +52,7 @@ func UnmarshalFromRequest() Middleware {
 func UnmarshalFromQuery(methods ...string) Middleware {
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			if !stringslice.Contain(methods, r.Method) {
+			if len(methods) != 0 && !stringslice.Contain(methods, r.Method) {
 				next.ServeHTTPC(ctx, w, r)
 				return
 			}
