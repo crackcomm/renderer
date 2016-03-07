@@ -23,7 +23,7 @@ func NewAPI(opts ...Option) xhandler.HandlerC {
 		opt(o)
 	}
 
-	// Create a Chain of middlewares
+	// Create a Chain of http handlers
 	var chain xhandler.Chain
 
 	// Add close notifier handler so context is cancelled when the client closes
@@ -38,6 +38,9 @@ func NewAPI(opts ...Option) xhandler.HandlerC {
 		o.componentSetter = UnmarshalFromRequest()
 	}
 	chain.UseC(o.componentSetter)
+	if o.templateCtxSetter != nil {
+		chain.UseC(o.templateCtxSetter)
+	}
 	chain.UseC(CompileFromCtx)
 	chain.UseC(RenderFromCtx)
 
