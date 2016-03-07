@@ -51,9 +51,6 @@ func (comp *compiler) CompileFromStorage(c *Component) (compiled *Compiled, err 
 	}
 	compiled.Component = c
 	err = comp.compileTo(compiled, c)
-	if err != nil {
-		return
-	}
 	return
 }
 

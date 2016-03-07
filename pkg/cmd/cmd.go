@@ -9,8 +9,8 @@ import (
 	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
 
-	"bitbucket.org/moovie/renderer/pkg/renderer"
-	"bitbucket.org/moovie/renderer/pkg/web"
+	"github.com/crackcomm/renderer/pkg/renderer"
+	"github.com/crackcomm/renderer/pkg/web"
 )
 
 // Commands - List of renderer commands.

@@ -36,7 +36,7 @@ func renderComponent(c *Compiled, main, res *Rendered, ctx template.Context) (er
 		return
 	}
 
-	if glog.V(3) {
+	if glog.V(6) {
 		b, _ := json.Marshal(ctx)
 		glog.Infof("[render] name=%q ctx=%s", c.Name, b)
 	}

@@ -14,6 +14,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -25,8 +26,9 @@ import (
 
 	"bitbucket.org/moovie/util/httputil"
 	"bitbucket.org/moovie/util/stringslice"
+	"bitbucket.org/moovie/util/template"
 
-	"bitbucket.org/moovie/renderer/pkg/renderer"
+	"github.com/crackcomm/renderer/pkg/renderer"
 )
 
 // Middleware - HTTP Middleware function.
@@ -56,21 +58,61 @@ func UnmarshalFromQuery(methods ...string) Middleware {
 				next.ServeHTTPC(ctx, w, r)
 				return
 			}
-			body := []byte(r.URL.Query().Get("json"))
-			if len(body) == 0 {
-				httputil.WriteError(w, r, http.StatusBadRequest, "no component in json query parameter")
-				return
-			}
-			c := new(renderer.Component)
-			err := json.Unmarshal(body, c)
+
+			// Read component from request
+			c, err := readComponent(r)
 			if err != nil {
 				httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
 				return
 			}
+
+			// Create a context with component and move to next handler
 			ctx = renderer.ComponentCtx(ctx, c)
 			next.ServeHTTPC(ctx, w, r)
 		})
 	}
+}
+
+func readComponent(r *http.Request) (c *renderer.Component, err error) {
+	c = new(renderer.Component)
+	if b := r.URL.Query().Get("json"); b != "" {
+		err = json.Unmarshal([]byte(b), c)
+		return
+	}
+	c.Name = r.URL.Query().Get("name")
+	if c.Name == "" {
+		return nil, errors.New("no component in request")
+	}
+	c.Main = r.URL.Query().Get("main")
+	c.Extends = r.URL.Query().Get("extends")
+	if b := r.URL.Query().Get("styles"); b != "" {
+		c.Styles = strings.Split(b, ",")
+	}
+	if b := r.URL.Query().Get("scripts"); b != "" {
+		c.Scripts = strings.Split(b, ",")
+	}
+	if b := r.URL.Query().Get("require"); b != "" {
+		c.Require = make(map[string]renderer.Component)
+		err = json.Unmarshal([]byte(b), &c.Require)
+		if err != nil {
+			return
+		}
+	}
+	if b := r.URL.Query().Get("context"); b != "" {
+		c.Context = make(template.Context)
+		err = json.Unmarshal([]byte(b), &c.Context)
+		if err != nil {
+			return
+		}
+	}
+	if b := r.URL.Query().Get("with"); b != "" {
+		c.With = make(map[string]string)
+		err = json.Unmarshal([]byte(b), &c.With)
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 // UnmarshalFromBody - Unmarshals component from request bodyCompileFromCtx() on certain methods.

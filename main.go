@@ -8,7 +8,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
 
-	"bitbucket.org/moovie/renderer/pkg/cmd"
+	"github.com/crackcomm/renderer/pkg/cmd"
 
 	_ "bitbucket.org/moovie/util/pongo2filters"
 )

@@ -22,6 +22,9 @@ API responds with `JSON` **only when** `Accept` header contains `application/jso
 by default it writes HTML response.
 
 ```sh
+# GET with component in URL
+# http://127.0.0.1:6660/?name=dashboard.components&context={"components":[{"name":"example number one"}]}
+# Or with POST method and component in body
 $ curl -XPOST --data '{
   "name": "dashboard.components",
   "context": {
