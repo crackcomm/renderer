@@ -1,8 +1,11 @@
 package renderer
 
 import (
-	"bitbucket.org/moovie/util/template"
+	"errors"
+
 	"golang.org/x/net/context"
+
+	"bitbucket.org/moovie/util/template"
 )
 
 type compilerCtxKeyT struct{}
@@ -79,4 +82,30 @@ func WithTemplateCtx(ctx context.Context, t template.Context) context.Context {
 func TemplateCtx(ctx context.Context) (t template.Context, ok bool) {
 	t, ok = ctx.Value(templateCtxKey).(template.Context)
 	return
+}
+
+// SetTemplateCtx - Sets template context value in `context.Context`.
+func SetTemplateCtx(ctx context.Context, key string, v interface{}) context.Context {
+	t, ok := TemplateCtx(ctx)
+	if ok {
+		t[key] = v
+		return ctx
+	}
+	return WithTemplateCtx(ctx, template.Context{key: v})
+}
+
+// CompileFromCtx - Compiles component from context
+// using compiler and storage from context.
+func CompileFromCtx(ctx context.Context) (compiled *Compiled, err error) {
+	c, ok := ComponentFromCtx(ctx)
+	if !ok {
+		err = errors.New("no component set")
+		return
+	}
+	compiler, ok := CompilerFromCtx(ctx)
+	if !ok {
+		err = errors.New("compiler not found")
+		return
+	}
+	return compiler.CompileFromStorage(c)
 }
