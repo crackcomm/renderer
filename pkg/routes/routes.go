@@ -5,6 +5,8 @@ import (
 
 	"github.com/rs/xhandler"
 	"github.com/rs/xmux"
+
+	"github.com/crackcomm/renderer/pkg/web"
 )
 
 // Route - Web route.
@@ -21,15 +23,15 @@ func (r Route) String() string {
 	return fmt.Sprintf("%s %s", r.Method, r.Path)
 }
 
-// Chain - Chains routes into http handler.
-func (r Routes) Chain() (xhandler.HandlerC, error) {
+// Construct - Constructs  http handler.
+func (r Routes) Construct(opts ...web.Option) (xhandler.HandlerC, error) {
 	mux := xmux.New()
 	for route, handler := range r {
-		chain, err := handler.Chain()
+		h, err := handler.Construct(opts...)
 		if err != nil {
 			return nil, err
 		}
-		mux.HandleC(route.Method, route.Path, chain)
+		mux.HandleC(route.Method, route.Path, h)
 	}
 	return mux, nil
 }

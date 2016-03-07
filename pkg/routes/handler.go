@@ -18,24 +18,10 @@ type Handler struct {
 	Middlewares []Middleware        `json:"middlewares,omitempty" yaml:"middlewares,omitempty"`
 }
 
-// Chain - Chains handler with middlewares into working http handler.
-func (h *Handler) Chain() (xhandler.HandlerC, error) {
-	// Create a Chain of http handlers
-	chain := new(xhandler.Chain)
-
-	// Set component in request context
-	chain.UseC(web.ComponentMiddleware(h.Component))
-
-	// Set request middlewares
-	for _, md := range h.Middlewares {
-		middleware, err := md.Construct()
-		if err != nil {
-			return nil, err
-		}
-		chain.UseC(middleware)
-	}
-
-	chain.UseC(func(next xhandler.HandlerC) xhandler.HandlerC {
+// Construct - Constructs http handler.
+func (h *Handler) Construct(opts ...web.Option) (xhandler.HandlerC, error) {
+	opts = append(opts, web.WithComponentSetter(web.ComponentMiddleware(h.Component)))
+	opts = append(opts, web.WithMiddleware(func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			ps := xmux.Params(ctx)
 			for _, p := range ps {
@@ -54,10 +40,15 @@ func (h *Handler) Chain() (xhandler.HandlerC, error) {
 			ctx = renderer.SetTemplateCtx(ctx, "request", r)
 			next.ServeHTTPC(ctx, w, r)
 		})
-	})
+	}))
 
-	// Compile component, render and write
-	chain.UseC(web.CompileFromCtx)
-	chain.UseC(web.RenderFromCtx)
-	return chain.HandlerCF(web.WriteRenderedHTML), nil
+	for _, md := range h.Middlewares {
+		middleware, err := md.Construct()
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, web.WithMiddleware(middleware))
+	}
+
+	return web.New(opts...), nil
 }

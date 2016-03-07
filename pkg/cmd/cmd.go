@@ -104,7 +104,7 @@ var webCommand = cli.Command{
 			}
 
 			// Turn routes into HTTP handler
-			api, err = r.Chain()
+			api, err = r.Construct()
 			if err != nil {
 				glog.Fatalf("[routes] %v", err)
 			}
