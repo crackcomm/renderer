@@ -34,6 +34,16 @@ import (
 // Middleware - HTTP Middleware function.
 type Middleware func(next xhandler.HandlerC) xhandler.HandlerC
 
+// ComponentMiddleware - Creates a middleware that sets given component in ctx.
+func ComponentMiddleware(c *renderer.Component) Middleware {
+	return func(next xhandler.HandlerC) xhandler.HandlerC {
+		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+			ctx = renderer.ComponentCtx(ctx, c)
+			next.ServeHTTPC(ctx, w, r)
+		})
+	}
+}
+
 // UnmarshalFromRequest - Unmarshals component using `UnmarshalFromQuery` on `GET`
 // method and `` on `POST` method.
 func UnmarshalFromRequest() Middleware {
@@ -140,17 +150,7 @@ func UnmarshalFromBody(methods ...string) Middleware {
 // Stores result in context to be retrieved with `renderer.ComponentFromCtx`.
 func CompileFromCtx(next xhandler.HandlerC) xhandler.HandlerC {
 	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		c, ok := renderer.ComponentFromCtx(ctx)
-		if !ok {
-			httputil.WriteError(w, r, http.StatusBadRequest, "no component set")
-			return
-		}
-		compiler, ok := renderer.CompilerFromCtx(ctx)
-		if !ok {
-			httputil.WriteError(w, r, http.StatusInternalServerError, "compiler not found")
-			return
-		}
-		compiled, err := compiler.CompileFromStorage(c)
+		compiled, err := renderer.CompileFromCtx(ctx)
 		if err != nil {
 			httputil.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("compile error: %v", err))
 			return
