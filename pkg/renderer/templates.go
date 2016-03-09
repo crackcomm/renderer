@@ -36,7 +36,8 @@ func parseTemplate(s Storage, text, baseDir string) (t template.Template, err er
 }
 
 // parseTemplates - Parses list of templates.
-func parseTemplates(s Storage, texts []string, baseDir string) (res []template.Template, err error) {
+func parseTemplates(s Storage, texts []string, baseDir string, start []template.Template) (res []template.Template, err error) {
+	res = start
 	for _, text := range texts {
 		t, err := parseTemplate(s, text, baseDir)
 		if err != nil {

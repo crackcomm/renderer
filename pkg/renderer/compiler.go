@@ -67,13 +67,13 @@ func (comp *compiler) compileTo(compiled *Compiled, c *Component) (err error) {
 	}
 
 	// Parse urls and compile styles templates
-	compiled.Styles, err = parseTemplates(comp.Storage, c.Styles, c.Name)
+	compiled.Styles, err = parseTemplates(comp.Storage, c.Styles, c.Name, compiled.Styles)
 	if err != nil {
 		return
 	}
 
 	// Parse urls and compile scripts templates
-	compiled.Scripts, err = parseTemplates(comp.Storage, c.Scripts, c.Name)
+	compiled.Scripts, err = parseTemplates(comp.Storage, c.Scripts, c.Name, compiled.Scripts)
 	if err != nil {
 		return
 	}
