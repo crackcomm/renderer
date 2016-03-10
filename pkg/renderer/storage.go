@@ -102,8 +102,7 @@ func (s *storage) Template(path string) (t template.Template, err error) {
 
 // Component - Returns component by name.
 func (s *storage) Component(name string) (c *Component, err error) {
-	name = componentNameToPath(name)
-	path := filepath.Join(s.opts.dirname, name, "component.json")
+	path := filepath.Join(s.opts.dirname, componentNameToPath(name), "component.json")
 	if tmp, ok := s.cache.components.Get(path); ok {
 		return tmp.(*Component), nil
 	}
@@ -115,6 +114,9 @@ func (s *storage) Component(name string) (c *Component, err error) {
 	err = json.Unmarshal(body, c)
 	if err != nil {
 		return
+	}
+	if c.Name == "" {
+		c.Name = name
 	}
 	s.cache.components.Set(path, c, cache.DefaultExpiration)
 	return
