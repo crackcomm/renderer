@@ -45,12 +45,21 @@ func (comp *compiler) CompileByName(name string) (compiled *Compiled, err error)
 // CompileFromStorage - Gets component from storage by name and merges
 // with component given in argument.
 func (comp *compiler) CompileFromStorage(c *Component) (compiled *Compiled, err error) {
-	compiled, err = comp.CompileByName(c.Name)
+	// Get component from storage by name
+	component, err := comp.Storage.Component(c.Name)
 	if err != nil {
 		return
 	}
-	compiled.Component = c
+
+	// Compile component from storage
+	compiled = &Compiled{Component: c}
 	err = comp.compileTo(compiled, c)
+	if err != nil {
+		return
+	}
+
+	// Overwrite defaults with given component settings
+	err = comp.compileTo(compiled, component)
 	return
 }
 
