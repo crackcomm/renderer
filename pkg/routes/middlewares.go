@@ -8,10 +8,9 @@ import (
 
 // Middleware - Web route middleware.
 // Name is a name of globally registered middleware.
-// Opts are options directed to this
 type Middleware struct {
-	Name string
-	Opts Options
+	Name    string  `json:"name,omitempty" yaml:"name,omitempty"`
+	Options Options `json:"options,omitempty" yaml:"options,omitempty"`
 }
 
 // Options - Middleware options type.
@@ -23,7 +22,7 @@ func (m Middleware) Construct() (web.Middleware, error) {
 	if !ok {
 		return nil, fmt.Errorf("middleware %q doesn't exist", m.Name)
 	}
-	return md(m.Opts)
+	return md(m.Options)
 }
 
 // Exists - Checks if middleware with given name exists in global register.
