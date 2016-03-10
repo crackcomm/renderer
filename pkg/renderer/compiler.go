@@ -67,22 +67,25 @@ func (comp *compiler) compileTo(compiled *Compiled, c *Component) (err error) {
 	// Set defaults from base component context
 	compiled.Context = compiled.Context.WithDefaults(c.Context)
 
+	// Component base path
+	base := componentNameToPath(c.Name)
+
 	// Compile main component template if not empty
 	if c.Main != "" {
-		compiled.Main, err = parseTemplate(comp.Storage, c.Main, c.Name)
+		compiled.Main, err = parseTemplate(comp.Storage, c.Main, base)
 		if err != nil {
 			return
 		}
 	}
 
 	// Parse urls and compile styles templates
-	compiled.Styles, err = parseTemplates(comp.Storage, c.Styles, c.Name, compiled.Styles)
+	compiled.Styles, err = parseTemplates(comp.Storage, c.Styles, base, compiled.Styles)
 	if err != nil {
 		return
 	}
 
 	// Parse urls and compile scripts templates
-	compiled.Scripts, err = parseTemplates(comp.Storage, c.Scripts, c.Name, compiled.Scripts)
+	compiled.Scripts, err = parseTemplates(comp.Storage, c.Scripts, base, compiled.Scripts)
 	if err != nil {
 		return
 	}

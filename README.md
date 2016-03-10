@@ -17,9 +17,9 @@ $ go get -u github.com/crackcomm/renderer
 Start API server:
 
 ```sh
-$ renderer web -watch -dir dashboard/
+$ renderer web -watch -dir ./examples/
 $ # With routes
-$ renderer web -watch -dir ./dashboard/ -routes ./dashboard/routes.yml
+$ renderer web -watch -dir ./examples/ -routes ./examples/routes.yml
 ```
 
 Render using API:

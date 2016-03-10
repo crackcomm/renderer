@@ -3,6 +3,7 @@ package renderer
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -101,6 +102,7 @@ func (s *storage) Template(path string) (t template.Template, err error) {
 
 // Component - Returns component by name.
 func (s *storage) Component(name string) (c *Component, err error) {
+	name = componentNameToPath(name)
 	path := filepath.Join(s.opts.dirname, name, "component.json")
 	if tmp, ok := s.cache.components.Get(path); ok {
 		return tmp.(*Component), nil
@@ -174,4 +176,8 @@ func (s *storage) watch() {
 		s.cache.templates.Delete(event.Path())
 		s.cache.components.Delete(event.Path())
 	}
+}
+
+func componentNameToPath(name string) string {
+	return strings.Replace(name, ".", string(os.PathSeparator), -1)
 }
