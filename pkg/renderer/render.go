@@ -1,8 +1,6 @@
 package renderer
 
 import (
-	"encoding/json"
-
 	"github.com/flosch/pongo2"
 	"github.com/golang/glog"
 
@@ -37,8 +35,7 @@ func renderComponent(c *Compiled, main, res *Rendered, ctx template.Context) (er
 	}
 
 	if glog.V(6) {
-		b, _ := json.Marshal(ctx)
-		glog.Infof("[render] name=%q ctx=%s", c.Name, b)
+		glog.Infof("[render] name=%q ctx=%#v", c.Name, ctx)
 	}
 
 	// Render required components
