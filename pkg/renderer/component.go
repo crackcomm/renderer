@@ -52,6 +52,9 @@ type Compiled struct {
 	// Component - Source of the compiled component.
 	*Component
 
+	// Context - Compiled component context.
+	Context template.Context
+
 	// Main - Main template compiled.
 	Main template.Template
 
