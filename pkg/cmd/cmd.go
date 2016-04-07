@@ -16,10 +16,11 @@ import (
 
 // Commands - List of renderer commands.
 var Commands = []cli.Command{
-	webCommand,
+	CommandWeb,
 }
 
-var webCommand = cli.Command{
+// CommandWeb - Web command.
+var CommandWeb = cli.Command{
 	Name:  "web",
 	Usage: "starts renderer web API",
 	Flags: []cli.Flag{
@@ -113,9 +114,16 @@ var webCommand = cli.Command{
 		}
 
 		// Start http server
-		err = http.ListenAndServe(c.String("listen-addr"), xhandler.New(ctx, api))
-		if err != nil {
-			glog.Fatalf("[api] %v", err)
+		server := &http.Server{
+			Addr:           c.String("listen-addr"),
+			Handler:        xhandler.New(ctx, api),
+			ReadTimeout:    30 * time.Second,
+			WriteTimeout:   30 * time.Second,
+			MaxHeaderBytes: 64 * 1024,
+		}
+
+		if err = server.ListenAndServe(); err != nil {
+			glog.Fatalf("[server] %v", err)
 		}
 	},
 }
