@@ -53,11 +53,13 @@ var expected = Routes{
 }
 
 func TestRoutesUnmarshal(t *testing.T) {
-	RegisterMiddleware("my_test_middleware", func(o Options) (web.Middleware, error) {
+	RegisterMiddleware(MiddlewareDescriptor{
+		Name: "my_test_middleware",
+	}, func(o Options) (web.Middleware, error) {
 		return func(next xhandler.HandlerC) xhandler.HandlerC {
 			return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				ctx = renderer.SetTemplateCtx(ctx, "some1", "test1")
-				ctx = renderer.SetTemplateCtx(ctx, "some2", "test2")
+				ctx = renderer.WithTemplateKey(ctx, "some1", "test1")
+				ctx = renderer.WithTemplateKey(ctx, "some2", "test2")
 				next.ServeHTTPC(ctx, w, r)
 			})
 		}, nil

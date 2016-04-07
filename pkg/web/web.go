@@ -34,14 +34,21 @@ import (
 // Middleware - HTTP Middleware function.
 type Middleware func(next xhandler.HandlerC) xhandler.HandlerC
 
-// ComponentMiddleware - Creates a middleware that sets given component in ctx.
-func ComponentMiddleware(c *renderer.Component) Middleware {
+// ToMiddleware - Converts function to middleware.
+func ToMiddleware(fn func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC)) Middleware {
 	return func(next xhandler.HandlerC) xhandler.HandlerC {
 		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			ctx = renderer.ComponentCtx(ctx, c)
-			next.ServeHTTPC(ctx, w, r)
+			fn(ctx, w, r, next)
 		})
 	}
+}
+
+// ComponentMiddleware - Creates a middleware that sets given component in ctx.
+func ComponentMiddleware(c *renderer.Component) Middleware {
+	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+		ctx = renderer.WithComponent(ctx, c)
+		next.ServeHTTPC(ctx, w, r)
+	})
 }
 
 // UnmarshalFromRequest - Unmarshals component using `UnmarshalFromQuery` on `GET`
@@ -52,39 +59,35 @@ var UnmarshalFromRequest = NewUnmarshalFromRequest()
 // method and `` on `POST` method.
 func NewUnmarshalFromRequest() Middleware {
 	get, post := UnmarshalFromQuery("GET"), UnmarshalFromBody("POST")
-	return func(next xhandler.HandlerC) xhandler.HandlerC {
-		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			if r.Method == "GET" {
-				get(next).ServeHTTPC(ctx, w, r)
-			} else if r.Method == "POST" {
-				post(next).ServeHTTPC(ctx, w, r)
-			}
-		})
-	}
+	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+		if r.Method == "GET" {
+			get(next).ServeHTTPC(ctx, w, r)
+		} else if r.Method == "POST" {
+			post(next).ServeHTTPC(ctx, w, r)
+		}
+	})
 }
 
 // UnmarshalFromQuery - Unmarshals component from `json` query on certain methods.
 // Stores result in context to be retrieved with `renderer.ComponentFromCtx`.
 func UnmarshalFromQuery(methods ...string) Middleware {
-	return func(next xhandler.HandlerC) xhandler.HandlerC {
-		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			if len(methods) != 0 && !stringslice.Contain(methods, r.Method) {
-				next.ServeHTTPC(ctx, w, r)
-				return
-			}
-
-			// Read component from request
-			c, err := readComponent(r)
-			if err != nil {
-				httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
-				return
-			}
-
-			// Create a context with component and move to next handler
-			ctx = renderer.ComponentCtx(ctx, c)
+	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+		if len(methods) != 0 && !stringslice.Contain(methods, r.Method) {
 			next.ServeHTTPC(ctx, w, r)
-		})
-	}
+			return
+		}
+
+		// Read component from request
+		c, err := readComponent(r)
+		if err != nil {
+			httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Create a context with component and move to next handler
+		ctx = renderer.WithComponent(ctx, c)
+		next.ServeHTTPC(ctx, w, r)
+	})
 }
 
 func readComponent(r *http.Request) (c *renderer.Component, err error) {
@@ -132,54 +135,52 @@ func readComponent(r *http.Request) (c *renderer.Component, err error) {
 // UnmarshalFromBody - Unmarshals component from request bodyCompileFromCtx() on certain methods.
 // Stores result in context to be retrieved with `renderer.ComponentFromCtx`.
 func UnmarshalFromBody(methods ...string) Middleware {
-	return func(next xhandler.HandlerC) xhandler.HandlerC {
-		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			if !stringslice.Contain(methods, r.Method) {
-				next.ServeHTTPC(ctx, w, r)
-				return
-			}
-			c := new(renderer.Component)
-			err := json.NewDecoder(r.Body).Decode(c)
-			if err != nil {
-				httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
-				return
-			}
-			ctx = renderer.ComponentCtx(ctx, c)
+	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+		if !stringslice.Contain(methods, r.Method) {
 			next.ServeHTTPC(ctx, w, r)
-		})
-	}
+			return
+		}
+		c := new(renderer.Component)
+		err := json.NewDecoder(r.Body).Decode(c)
+		if err != nil {
+			httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
+			return
+		}
+		ctx = renderer.WithComponent(ctx, c)
+		next.ServeHTTPC(ctx, w, r)
+	})
 }
 
 // CompileFromCtx - Compiles component from context.
 // Stores result in context to be retrieved with `renderer.ComponentFromCtx`.
 func CompileFromCtx(next xhandler.HandlerC) xhandler.HandlerC {
 	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		compiled, err := renderer.CompileFromCtx(ctx)
+		compiled, err := renderer.CompileContext(ctx)
 		if err != nil {
 			httputil.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("compile error: %v", err))
 			return
 		}
-		ctx = renderer.CompiledCtx(ctx, compiled)
+		ctx = renderer.WithCompiled(ctx, compiled)
 		next.ServeHTTPC(ctx, w, r)
 	})
 }
 
 // RenderFromCtx - Renders compiled component from context.
-// Stores result in context to be retrieved with `renderer.RenderedFromCtx`.
+// Stores result in context to be retrieved with `renderer.ContextRendered`.
 func RenderFromCtx(next xhandler.HandlerC) xhandler.HandlerC {
 	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		c, ok := renderer.CompiledFromCtx(ctx)
+		c, ok := renderer.ContextCompiled(ctx)
 		if !ok {
 			httputil.WriteError(w, r, http.StatusBadRequest, "component not compiled")
 			return
 		}
-		t, _ := renderer.TemplateCtx(ctx)
+		t, _ := renderer.TemplateContext(ctx)
 		res, err := renderer.Render(c, t)
 		if err != nil {
 			httputil.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("render error: %v", err))
 			return
 		}
-		ctx = renderer.RenderedCtx(ctx, res)
+		ctx = renderer.WithRendered(ctx, res)
 		next.ServeHTTPC(ctx, w, r)
 	})
 }
@@ -196,7 +197,7 @@ func WriteRendered(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 
 // WriteRenderedJSON - Writes rendered component from context to response writer.
 func WriteRenderedJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	res, ok := renderer.RenderedFromCtx(ctx)
+	res, ok := renderer.ContextRendered(ctx)
 	if !ok {
 		httputil.WriteError(w, r, http.StatusBadRequest, "component not rendered")
 		return
@@ -209,7 +210,7 @@ func WriteRenderedJSON(ctx context.Context, w http.ResponseWriter, r *http.Reque
 
 // WriteRenderedHTML - Writes rendered component from context to response writer.
 func WriteRenderedHTML(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	res, ok := renderer.RenderedFromCtx(ctx)
+	res, ok := renderer.ContextRendered(ctx)
 	if !ok {
 		httputil.WriteError(w, r, http.StatusBadRequest, "component not rendered")
 		return

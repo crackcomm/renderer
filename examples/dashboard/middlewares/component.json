@@ -1,0 +1,8 @@
+{
+  "main": "file://component.html",
+  "name": "dashboard.middlewares",
+  "extends": "dashboard.root",
+  "with": {
+    "title": "Middlewares ({{ middlewares|length }})"
+  }
+}

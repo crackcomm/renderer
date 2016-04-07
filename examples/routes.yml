@@ -10,3 +10,9 @@ GET /:test_id:
       - name: test4
     with:
       title: "ID: {{ param_test_id }}  URL: {{ request.URL.RequestURI }}"
+
+GET /:
+  component:
+    name: dashboard.middlewares
+  middlewares:
+    - name: web.middlewares

@@ -55,12 +55,12 @@ type options struct {
 	reqTimeout time.Duration
 
 	// componentSetter - Component setter middleware.
-	// It should set a component in context using `renderer.ComponentCtx`.
+	// It should set a component in context using `renderer.WithComponent`.
 	componentSetter Middleware
 
 	// templateCtxSetter - Component template context setter middleware.
 	// This middleware can read context from request etc.
-	// It should set template context using `renderer.WithTemplateCtx`.
+	// It should set template context using `renderer.WithTemplateContext`.
 	templateCtxSetter Middleware
 
 	// defaultCtx - Default template context.
@@ -120,13 +120,26 @@ func WithMiddleware(m Middleware) Option {
 	}
 }
 
+type breakKeyT struct{}
+
+var breakKey = breakKeyT{}
+
+// Break - Sets a break in context.
+func Break(ctx context.Context) context.Context {
+	return context.WithValue(ctx, breakKey, true)
+}
+
+// HasBreak - Returns true if break was set in given context.
+func HasBreak(ctx context.Context) bool {
+	b, _ := ctx.Value(breakKey).(bool)
+	return b
+}
+
 func defaultCtxSetter(o *options) Middleware {
-	return func(next xhandler.HandlerC) xhandler.HandlerC {
-		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			if _, ok := renderer.TemplateCtx(ctx); !ok && o.defaultCtx != nil {
-				ctx = renderer.WithTemplateCtx(ctx, o.defaultCtx)
-			}
-			next.ServeHTTPC(ctx, w, r)
-		})
-	}
+	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+		if _, ok := renderer.TemplateContext(ctx); !ok && o.defaultCtx != nil {
+			ctx = renderer.WithTemplateContext(ctx, o.defaultCtx)
+		}
+		next.ServeHTTPC(ctx, w, r)
+	})
 }

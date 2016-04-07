@@ -11,12 +11,12 @@ import (
 )
 
 func ExampleRegisterMiddleware() {
-	RegisterMiddleware("context_request", func(_ Options) (web.Middleware, error) {
-		return func(next xhandler.HandlerC) xhandler.HandlerC {
-			return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				ctx = renderer.SetTemplateCtx(ctx, "template_key", "example value")
-				next.ServeHTTPC(ctx, w, r)
-			})
-		}, nil
+	RegisterMiddleware(MiddlewareDescriptor{
+		Name: "context_request",
+	}, func(_ Options) (web.Middleware, error) {
+		return web.ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+			ctx = renderer.WithTemplateKey(ctx, "template_key", "example value")
+			next.ServeHTTPC(ctx, w, r)
+		}), nil
 	})
 }

@@ -30,7 +30,7 @@ var CommandWeb = cli.Command{
 			Usage: "file containing routes in yaml format",
 		},
 		cli.StringFlag{
-			Name:  "dir",
+			Name:  "components",
 			Usage: "directory containing components",
 		},
 		cli.BoolFlag{
@@ -65,15 +65,15 @@ var CommandWeb = cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) {
-		// Get components directory from --dir flag
+		// Get components directory from --components flag
 		// Print fatal error if not set
-		if c.String("dir") == "" {
-			glog.Fatal("Components directory needs to be set in --dir.")
+		if c.String("components") == "" {
+			glog.Fatal("--components flag cannot be empty")
 		}
 
-		// Create a new storage in directory from --dir flag
+		// Create a new storage in directory from --components flag
 		storage, err := renderer.NewStorage(
-			renderer.WithDir(c.String("dir")),
+			renderer.WithDir(c.String("components")),
 			renderer.WithCacheExpiration(c.Duration("cache-expiration")),
 			renderer.WithCacheCleanupInterval(c.Duration("cache-cleanup")),
 			renderer.WithWatching(c.Bool("watch")),
@@ -91,7 +91,7 @@ var CommandWeb = cli.Command{
 		ctx := context.Background()
 
 		// Create a context with compiler
-		ctx = renderer.CompilerCtx(ctx, compiler)
+		ctx = renderer.WithCompiler(ctx, compiler)
 
 		glog.Infof("[api] starting on %s", c.String("listen-addr"))
 

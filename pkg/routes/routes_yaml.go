@@ -33,7 +33,7 @@ func (yr yamlRoutes) toRoutes() (routes Routes, err error) {
 			return
 		}
 		for _, m := range v.Middlewares {
-			if !m.Exists() {
+			if !MiddlewareExists(m.Name) {
 				err = fmt.Errorf("middleware %q doesn't exist", m.Name)
 				return
 			}
