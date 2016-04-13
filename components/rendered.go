@@ -1,4 +1,4 @@
-package renderer
+package components
 
 import (
 	"fmt"
@@ -7,8 +7,22 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// RenderHTML - Merges styles and scripts into HTML body.
-func RenderHTML(r *Rendered) (body string, err error) {
+// Rendered - Rendered component.
+type Rendered struct {
+	// Body - Main body of the rendered component.
+	Body string `json:"body,omitempty" yaml:"body,omitempty"`
+
+	// Styles - List of styles.
+	// They can be urls or list of css styles with prefix "data:text/css;".
+	Styles []string `json:"styles,omitempty" yaml:"styles,omitempty"`
+
+	// Scripts - List of scripts.
+	// They can be urls or list of js scripts with prefix "data:text/javascript;".
+	Scripts []string `json:"scripts,omitempty" yaml:"scripts,omitempty"`
+}
+
+// HTML - Merges styles and scripts into HTML body.
+func (r *Rendered) HTML() (body string, err error) {
 	// Return if no styles or scripts to add.
 	if len(r.Styles) == 0 && len(r.Scripts) == 0 {
 		return r.Body, nil

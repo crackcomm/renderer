@@ -1,40 +1,40 @@
-package renderer
+package compiler
+
+import (
+	"os"
+	"strings"
+	"time"
+
+	"github.com/patrickmn/go-cache"
+
+	"github.com/crackcomm/renderer/components"
+	"github.com/crackcomm/renderer/storage"
+)
 
 // Compiler - Components compiler interface.
-type Compiler interface {
-	Storage
-
-	// Compile - Compiles a component.
-	// Expects the component to have all the required data embed or in storage.
-	Compile(*Component) (*Compiled, error)
-
-	// CompileByName - Compiles a component by name.
-	CompileByName(string) (*Compiled, error)
-
-	// CompileFromStorage - Gets component from storage by name and merges
-	// with component given in argument.
-	CompileFromStorage(*Component) (*Compiled, error)
+type Compiler struct {
+	*storage.Storage
+	cache *cache.Cache
 }
 
-// NewCompiler - Creates a new components compiler.
-func NewCompiler(s Storage) Compiler {
-	return &compiler{Storage: s}
-}
-
-type compiler struct {
-	Storage
+// New - Creates a new components compiler.
+func New(s *storage.Storage, cacheExpiration, cacheCleanInterval time.Duration) *Compiler {
+	return &Compiler{
+		Storage: s,
+		cache:   cache.New(cacheExpiration, cacheCleanInterval),
+	}
 }
 
 // Compile - Compiles a component.
 // Expects the component to have all the required data embed or in storage.
-func (comp *compiler) Compile(c *Component) (compiled *Compiled, err error) {
-	compiled = &Compiled{Component: c}
+func (comp *Compiler) Compile(c *components.Component) (compiled *components.Compiled, err error) {
+	compiled = &components.Compiled{Component: c}
 	err = comp.compileTo(compiled, c)
 	return
 }
 
 // CompileByName - Compiles a component by name.
-func (comp *compiler) CompileByName(name string) (compiled *Compiled, err error) {
+func (comp *Compiler) CompileByName(name string) (compiled *components.Compiled, err error) {
 	c, err := comp.Storage.Component(name)
 	if err != nil {
 		return
@@ -43,8 +43,8 @@ func (comp *compiler) CompileByName(name string) (compiled *Compiled, err error)
 }
 
 // CompileFromStorage - Gets component from storage by name and merges
-// with component given in argument.
-func (comp *compiler) CompileFromStorage(c *Component) (compiled *Compiled, err error) {
+// with component given in argument. Component is used as cache key.
+func (comp *Compiler) CompileFromStorage(c *components.Component) (compiled *components.Compiled, err error) {
 	// Get component from storage by name
 	component, err := comp.Storage.Component(c.Name)
 	if err != nil {
@@ -52,7 +52,7 @@ func (comp *compiler) CompileFromStorage(c *Component) (compiled *Compiled, err 
 	}
 
 	// Compile component from storage
-	compiled = &Compiled{Component: c}
+	compiled = &components.Compiled{Component: c}
 	err = comp.compileTo(compiled, c)
 	if err != nil {
 		return
@@ -63,12 +63,18 @@ func (comp *compiler) CompileFromStorage(c *Component) (compiled *Compiled, err 
 	return
 }
 
-func (comp *compiler) compileTo(compiled *Compiled, c *Component) (err error) {
+// FlushCache - Flushes storage cache.
+func (comp *Compiler) FlushCache() {
+	comp.cache.Flush()
+	comp.Storage.FlushCache()
+}
+
+func (comp *Compiler) compileTo(compiled *components.Compiled, c *components.Component) (err error) {
 	// Set defaults from base component context
 	compiled.Context = compiled.Context.WithDefaults(c.Context)
 
 	// Component base path
-	base := componentNameToPath(c.Name)
+	base := strings.Replace(c.Name, ".", string(os.PathSeparator), -1)
 
 	// Compile main component template if not empty
 	if c.Main != "" {
@@ -111,7 +117,7 @@ func (comp *compiler) compileTo(compiled *Compiled, c *Component) (err error) {
 			return err
 		}
 		if compiled.Require == nil {
-			compiled.Require = make(map[string]*Compiled)
+			compiled.Require = make(map[string]*components.Compiled)
 		}
 		compiled.Require[name] = req
 	}

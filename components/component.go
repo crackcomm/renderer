@@ -1,4 +1,4 @@
-package renderer
+package components
 
 import "bitbucket.org/moovie/util/template"
 
@@ -31,45 +31,4 @@ type Component struct {
 
 	// With - Like context but values should be templates.
 	With map[string]string `json:"with,omitempty" yaml:"with,omitempty"`
-}
-
-// Rendered - Rendered component.
-type Rendered struct {
-	// Body - Main body of the rendered component.
-	Body string `json:"body,omitempty" yaml:"body,omitempty"`
-
-	// Styles - List of styles.
-	// They can be urls or list of css styles with prefix "data:text/css;".
-	Styles []string `json:"styles,omitempty" yaml:"styles,omitempty"`
-
-	// Scripts - List of scripts.
-	// They can be urls or list of js scripts with prefix "data:text/javascript;".
-	Scripts []string `json:"scripts,omitempty" yaml:"scripts,omitempty"`
-}
-
-// Compiled - Compiled component ready to render.
-type Compiled struct {
-	// Component - Source of the compiled component.
-	*Component
-
-	// Context - Compiled component context.
-	Context template.Context
-
-	// Main - Main template compiled.
-	Main template.Template
-
-	// With - `With` templates map.
-	With template.Map
-
-	// Extends - Compiled `Extends` component.
-	Extends *Compiled
-
-	// Styles - Compiled styles templates.
-	Styles []template.Template
-
-	// Scripts - Compiled scripts templates.
-	Scripts []template.Template
-
-	// Require - Compiled `Require` components.
-	Require map[string]*Compiled
 }

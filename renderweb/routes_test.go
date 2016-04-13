@@ -1,4 +1,4 @@
-package routes
+package renderweb
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ import (
 
 	"bitbucket.org/moovie/util/template"
 
-	"github.com/crackcomm/renderer/pkg/renderer"
-	"github.com/crackcomm/renderer/pkg/web"
+	"github.com/crackcomm/renderer/components"
+	"github.com/crackcomm/renderer/web"
 )
 
 var data = `
@@ -33,7 +33,7 @@ GET /test/:test_id:
 
 var expected = Routes{
 	Route{Method: "GET", Path: "/test/:test_id"}: Handler{
-		Component: renderer.Component{
+		Component: components.Component{
 			Name: "dashboard.components",
 			Context: template.Context{
 				"components": []interface{}{
@@ -58,8 +58,8 @@ func TestRoutesUnmarshal(t *testing.T) {
 	}, func(o Options) (web.Middleware, error) {
 		return func(next xhandler.HandlerC) xhandler.HandlerC {
 			return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				ctx = renderer.WithTemplateKey(ctx, "some1", "test1")
-				ctx = renderer.WithTemplateKey(ctx, "some2", "test2")
+				ctx = components.WithTemplateKey(ctx, "some1", "test1")
+				ctx = components.WithTemplateKey(ctx, "some2", "test2")
 				next.ServeHTTPC(ctx, w, r)
 			})
 		}, nil
@@ -82,7 +82,7 @@ func TestRoutesUnmarshal(t *testing.T) {
 
 	t.Logf("Got: %#v", r)
 
-	_, err = r.Chain()
+	_, err = r.Construct()
 	if err != nil {
 		t.Fatal(err)
 	}

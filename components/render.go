@@ -1,4 +1,4 @@
-package renderer
+package components
 
 import (
 	"github.com/flosch/pongo2"

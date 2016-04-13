@@ -8,9 +8,9 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
 
-	"github.com/crackcomm/renderer/pkg/cmd"
-
 	_ "bitbucket.org/moovie/util/pongo2filters"
+
+	"github.com/crackcomm/renderer/command"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 	app.Usage = "components compiler, renderer and command line tool with web interface"
 	app.Version = ""
 	app.HideVersion = true
-	app.Commands = cmd.Commands
+	app.Commands = command.Commands
 	app.Flags = []cli.Flag{
 		cli.IntFlag{
 			Name:   "v",

@@ -1,4 +1,4 @@
-package renderer
+package compiler
 
 import (
 	"fmt"
@@ -6,13 +6,15 @@ import (
 	"strings"
 
 	"bitbucket.org/moovie/util/template"
+
+	"github.com/crackcomm/renderer/storage"
 )
 
 // parseTemplate - Parse template from string.
 // String may be in URL format (eq. `http://...` or `file://...`).
 // Or it may contain template data in format `data:template {{ here }}`.
 // Or it may contain pure text data in format `text:plain data here`.
-func parseTemplate(s Storage, text, baseDir string) (t template.Template, err error) {
+func parseTemplate(s *storage.Storage, text, baseDir string) (t template.Template, err error) {
 	scheme, rest, ok := parseScheme(text)
 	if !ok {
 		return nil, fmt.Errorf("invalid template url %q", text)
@@ -36,7 +38,7 @@ func parseTemplate(s Storage, text, baseDir string) (t template.Template, err er
 }
 
 // parseTemplates - Parses list of templates.
-func parseTemplates(s Storage, texts []string, baseDir string, start []template.Template) (res []template.Template, err error) {
+func parseTemplates(s *storage.Storage, texts []string, baseDir string, start []template.Template) (res []template.Template, err error) {
 	res = start
 	for _, text := range texts {
 		t, err := parseTemplate(s, text, baseDir)

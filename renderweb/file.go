@@ -1,20 +1,22 @@
-package routes
+package renderweb
 
 import (
 	"fmt"
 	"io/ioutil"
 	"strings"
 
+	"github.com/crackcomm/renderer/middlewares"
+
 	"gopkg.in/yaml.v2"
 )
 
-// FromFile - Reads routes from yaml file.
-func FromFile(filename string) (Routes, error) {
+// RoutesFromFile - Reads routes from yaml file.
+func RoutesFromFile(filename string) (Routes, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	m := make(yamlRoutes)
+	m := make(routesFile)
 	err = yaml.Unmarshal([]byte(data), &m)
 	if err != nil {
 		return nil, err
@@ -22,18 +24,18 @@ func FromFile(filename string) (Routes, error) {
 	return m.toRoutes()
 }
 
-type yamlRoutes map[string]*Handler
+type routesFile map[string]*Handler
 
-func (yr yamlRoutes) toRoutes() (routes Routes, err error) {
+func (file routesFile) toRoutes() (routes Routes, err error) {
 	routes = make(Routes)
-	for r, v := range yr {
+	for r, v := range file {
 		var route Route
 		route, err = parseRoute(r)
 		if err != nil {
 			return
 		}
 		for _, m := range v.Middlewares {
-			if !MiddlewareExists(m.Name) {
+			if !middlewares.Exists(m.Name) {
 				err = fmt.Errorf("middleware %q doesn't exist", m.Name)
 				return
 			}
