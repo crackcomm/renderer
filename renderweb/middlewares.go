@@ -203,10 +203,5 @@ func WriteRenderedHTML(ctx context.Context, w http.ResponseWriter, r *http.Reque
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")
-	body, err := res.HTML()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("html error: %v", err), http.StatusExpectationFailed)
-		return
-	}
-	w.Write([]byte(body))
+	w.Write([]byte(res.HTML()))
 }
