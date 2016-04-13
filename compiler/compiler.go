@@ -56,11 +56,6 @@ func (comp *Compiler) CompileFromStorage(c *components.Component) (compiled *com
 	return
 }
 
-// FlushCache - Flushes storage cache.
-func (comp *Compiler) FlushCache() {
-	comp.Storage.FlushCache()
-}
-
 func (comp *Compiler) compileTo(compiled *components.Compiled, c *components.Component) (err error) {
 	// Set defaults from base component context
 	compiled.Context = compiled.Context.WithDefaults(c.Context)

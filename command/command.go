@@ -133,7 +133,7 @@ var Web = cli.Command{
 		if c.Bool("watch") {
 			// Start watching for changes in components directory
 			var w *watcher.Watcher
-			w, err = watcher.Start(c.String("components"), comp)
+			w, err = watcher.Start(c.String("components"), storage)
 			if err != nil {
 				glog.Fatal(err)
 			}
