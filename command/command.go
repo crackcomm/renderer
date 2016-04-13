@@ -15,6 +15,9 @@ import (
 	"github.com/crackcomm/renderer/renderweb"
 	"github.com/crackcomm/renderer/storage"
 	"github.com/crackcomm/renderer/watcher"
+
+	// Profiler
+	_ "net/http/pprof"
 )
 
 // Commands - List of renderer commands.
@@ -80,6 +83,12 @@ var Web = cli.Command{
 			Usage:  "http server write timeout",
 			Value:  time.Minute,
 		},
+
+		// Profiler
+		cli.StringFlag{
+			Name:  "pprof-addr",
+			Usage: "pprof listening address",
+		},
 	},
 	Action: func(c *cli.Context) {
 		// Get components directory from --components flag
@@ -105,8 +114,6 @@ var Web = cli.Command{
 
 		// Create a context with compiler
 		ctx := compiler.NewContext(context.Background(), comp)
-
-		glog.Infof("[api] starting on %s", c.String("listen-addr"))
 
 		// Turn routes into HTTP handler
 		api, err := constructHandler(c.StringSlice("routes")...)
@@ -143,7 +150,17 @@ var Web = cli.Command{
 			}
 		}
 
-		// Start http server
+		// Start profiler if enabled
+		if pprofaddr := c.String("pprof-addr"); pprofaddr != "" {
+			go func() {
+				glog.Infof("[pprof] starting listener on %s", pprofaddr)
+				if err := http.ListenAndServe(pprofaddr, nil); err != nil {
+					glog.Fatal(err)
+				}
+			}()
+		}
+
+		// Construct http server
 		server := &http.Server{
 			Addr:           c.String("listen-addr"),
 			Handler:        handler,
@@ -152,6 +169,7 @@ var Web = cli.Command{
 			MaxHeaderBytes: 64 * 1024,
 		}
 
+		glog.Infof("[server] starting listener on %s", c.String("listen-addr"))
 		if err = server.ListenAndServe(); err != nil {
 			glog.Fatalf("[server] %v", err)
 		}
