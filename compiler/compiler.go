@@ -3,9 +3,6 @@ package compiler
 import (
 	"os"
 	"strings"
-	"time"
-
-	"github.com/patrickmn/go-cache"
 
 	"github.com/crackcomm/renderer/components"
 	"github.com/crackcomm/renderer/storage"
@@ -14,15 +11,11 @@ import (
 // Compiler - Components compiler interface.
 type Compiler struct {
 	*storage.Storage
-	cache *cache.Cache
 }
 
 // New - Creates a new components compiler.
-func New(s *storage.Storage, cacheExpiration, cacheCleanInterval time.Duration) *Compiler {
-	return &Compiler{
-		Storage: s,
-		cache:   cache.New(cacheExpiration, cacheCleanInterval),
-	}
+func New(s *storage.Storage) *Compiler {
+	return &Compiler{Storage: s}
 }
 
 // Compile - Compiles a component.
@@ -43,7 +36,7 @@ func (comp *Compiler) CompileByName(name string) (compiled *components.Compiled,
 }
 
 // CompileFromStorage - Gets component from storage by name and merges
-// with component given in argument. Component is used as cache key.
+// with component given in argument.
 func (comp *Compiler) CompileFromStorage(c *components.Component) (compiled *components.Compiled, err error) {
 	// Get component from storage by name
 	component, err := comp.Storage.Component(c.Name)
@@ -65,7 +58,6 @@ func (comp *Compiler) CompileFromStorage(c *components.Component) (compiled *com
 
 // FlushCache - Flushes storage cache.
 func (comp *Compiler) FlushCache() {
-	comp.cache.Flush()
 	comp.Storage.FlushCache()
 }
 

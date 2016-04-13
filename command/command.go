@@ -110,7 +110,7 @@ var Web = cli.Command{
 		defer storage.Close()
 
 		// Create a compiler from storage
-		comp := compiler.New(storage, c.Duration("cache-expiration"), c.Duration("cache-cleanup"))
+		comp := compiler.New(storage)
 
 		// Create a context with compiler
 		ctx := compiler.NewContext(context.Background(), comp)
