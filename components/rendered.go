@@ -3,8 +3,6 @@ package components
 import (
 	"fmt"
 	"strings"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 // Rendered - Rendered component.
@@ -22,44 +20,57 @@ type Rendered struct {
 }
 
 // HTML - Merges styles and scripts into HTML body.
-func (r *Rendered) HTML() (body string, err error) {
+func (r *Rendered) HTML() string {
 	// Return if no styles or scripts to add.
 	if len(r.Styles) == 0 && len(r.Scripts) == 0 {
-		return r.Body, nil
+		return r.Body
 	}
 
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(r.Body))
-	if err != nil {
+	var extras []string
+	for _, src := range r.Styles {
+		extras = append(extras, renderStyle(src))
+	}
+	for _, src := range r.Scripts {
+		extras = append(extras, renderScript(src))
+	}
+
+	return insertExtras(r.Body, extras)
+}
+
+func insertExtras(html string, extras []string) (res string) {
+	res, ok := insertBefore(html, "</head>", extras)
+	if ok {
 		return
 	}
-
-	if len(r.Styles) > 0 {
-		// Find <head> element or insert if not found
-		h := doc.Find("head")
-		if h.Size() == 0 {
-			h = doc.Find("html").PrependHtml("<head></head>")
-		}
-
-		// Insert styles into head
-		for _, src := range r.Styles {
-			h.AppendHtml(renderStyle(src))
-		}
+	extras = []string{"<head>", strings.Join(extras, ""), "</head>"}
+	res, ok = insertBefore(html, "<body", extras)
+	if ok {
+		return
 	}
+	return strings.Join([]string{
+		"<!DOCTYPE html><html lang=\"en\">",
+		strings.Join(extras, ""),
+		"<body>", html, "</body></html>",
+	}, "")
+}
 
-	if len(r.Scripts) > 0 {
-		// Find <body> element or insert if not found
-		b := doc.Find("body")
-		if b.Size() == 0 {
-			b = doc.Find("html").AppendHtml("<body></body>")
-		}
-
-		// Insert scripts on the end of body tag
-		for _, src := range r.Scripts {
-			b.AppendHtml(renderScript(src))
-		}
+func insertAfter(input, after string, extras []string) (_ string, ok bool) {
+	index := strings.Index(input, after)
+	if index == -1 {
+		return
 	}
+	index = index + len(after)
+	extra := strings.Join(extras, "")
+	return strings.Join([]string{input[:index], extra, input[index:]}, ""), true
+}
 
-	return doc.Html()
+func insertBefore(input, before string, extras []string) (_ string, ok bool) {
+	index := strings.Index(input, before)
+	if index == -1 {
+		return
+	}
+	extra := strings.Join(extras, "")
+	return strings.Join([]string{input[:index], extra, input[index:]}, ""), true
 }
 
 func renderStyle(src string) string {
