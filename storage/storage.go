@@ -11,9 +11,8 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/rjeczalik/notify"
 
-	"bitbucket.org/moovie/util/whitespaces"
-
 	"bitbucket.org/moovie/util/template"
+	"bitbucket.org/moovie/util/whitespaces"
 )
 
 // New - Creates new components storage.
