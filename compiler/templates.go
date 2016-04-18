@@ -17,7 +17,7 @@ import (
 func parseTemplate(s *storage.Storage, text, baseDir string) (t template.Template, err error) {
 	scheme, rest, ok := parseScheme(text)
 	if !ok {
-		return nil, fmt.Errorf("invalid template url %q", text)
+		return nil, fmt.Errorf("missing scheme from template URL: %q", text)
 	}
 
 	switch scheme {
@@ -27,7 +27,20 @@ func parseTemplate(s *storage.Storage, text, baseDir string) (t template.Templat
 		if baseDir != "" {
 			rest = filepath.Join(baseDir, rest)
 		}
-		return s.Template(rest)
+		t, err = s.Template(rest)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %v", text, err)
+		}
+		return
+	case "file+text":
+		if baseDir != "" {
+			rest = filepath.Join(baseDir, rest)
+		}
+		t, err = s.Text(rest)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %v", text, err)
+		}
+		return
 	case "http", "https":
 		return template.Text(text), nil
 	case "text":
@@ -51,6 +64,9 @@ func parseTemplates(s *storage.Storage, texts []string, baseDir string, start []
 }
 
 func parseScheme(text string) (scheme, rest string, ok bool) {
+	if strings.HasPrefix(text, "/") {
+		return "http", text, true
+	}
 	i := strings.Index(text, "://")
 	if i == -1 {
 		return
