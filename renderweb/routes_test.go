@@ -13,7 +13,7 @@ import (
 	"bitbucket.org/moovie/util/template"
 
 	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/web"
+	"github.com/crackcomm/renderer/middlewares"
 )
 
 var data = `
@@ -27,13 +27,13 @@ GET /test/:test_id:
       - name: test3
   middlewares:
   - name: my_test_middleware
-    opts:
+    options:
       opts1: test_value
 `
 
 var expected = Routes{
-	Route{Method: "GET", Path: "/test/:test_id"}: Handler{
-		Component: components.Component{
+	Route{Method: "GET", Path: "/test/:test_id"}: &Handler{
+		Component: &components.Component{
 			Name: "dashboard.components",
 			Context: template.Context{
 				"components": []interface{}{
@@ -43,29 +43,27 @@ var expected = Routes{
 				},
 			},
 		},
-		Middlewares: []Middleware{
+		Middlewares: []*middlewares.Middleware{
 			{
-				Name: "my_test_middleware",
-				Opts: map[string]interface{}{"opts1": "test_value"},
+				Name:    "my_test_middleware",
+				Options: middlewares.Options{"opts1": "test_value"},
 			},
 		},
 	},
 }
 
 func TestRoutesUnmarshal(t *testing.T) {
-	RegisterMiddleware(MiddlewareDescriptor{
+	middlewares.Register(middlewares.Descriptor{
 		Name: "my_test_middleware",
-	}, func(o Options) (web.Middleware, error) {
-		return func(next xhandler.HandlerC) xhandler.HandlerC {
-			return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				ctx = components.WithTemplateKey(ctx, "some1", "test1")
-				ctx = components.WithTemplateKey(ctx, "some2", "test2")
-				next.ServeHTTPC(ctx, w, r)
-			})
-		}, nil
+	}, func(o middlewares.Options) (middlewares.Handler, error) {
+		return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+			ctx = components.WithTemplateKey(ctx, "some1", "test1")
+			ctx = components.WithTemplateKey(ctx, "some2", "test2")
+			next.ServeHTTPC(ctx, w, r)
+		}), nil
 	})
 
-	m := make(yamlRoutes)
+	m := make(routesFile)
 	err := yaml.Unmarshal([]byte(data), &m)
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +87,7 @@ func TestRoutesUnmarshal(t *testing.T) {
 }
 
 func TestRoutesYamlMarshal(t *testing.T) {
-	m := make(yamlRoutes)
+	m := make(routesFile)
 	err := yaml.Unmarshal([]byte(data), &m)
 	if err != nil {
 		t.Fatal(err)
