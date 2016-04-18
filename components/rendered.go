@@ -74,15 +74,28 @@ func insertBefore(input, before string, extras []string) (_ string, ok bool) {
 }
 
 func renderStyle(src string) string {
-	if strings.HasPrefix(src, "://") || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+	if hasURLPrefix(src) {
 		return fmt.Sprintf(`<link rel="stylesheet" href="%s" />`, src)
 	}
 	return fmt.Sprintf(`<style type="text/css">%s</style>`, src)
 }
 
 func renderScript(src string) string {
-	if strings.HasPrefix(src, "://") || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+	if hasURLPrefix(src) {
 		return fmt.Sprintf(`<script src="%s"></script>`, src)
 	}
 	return fmt.Sprintf(`<script type="text/javascript">%s</script>`, src)
+}
+
+var schemes = []string{
+	"http://",
+	"https://",
+	"://",
+}
+
+func hasURLPrefix(src string) bool {
+	if strings.HasPrefix(src, "/") && len(src) <= 255 {
+		return true
+	}
+	return strings.HasPrefix(src, "://") || strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://")
 }
