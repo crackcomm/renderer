@@ -43,13 +43,22 @@ func (desc Descriptor) SetDefaults(opts Options) (res Options, err error) {
 		if has {
 			continue
 		}
-		if opt.Default != nil {
-			res[opt.Name] = opt.Default
-		} else if opt.Required {
+		res[opt.Name] = setDefault(res[opt.Name], opt.Default)
+		if opt.Required && res[opt.Name] == nil {
 			return nil, fmt.Errorf("middleware %q requires %q option value", desc.Name, opt.Name)
 		}
 	}
 	return
+}
+
+func setDefault(in, def interface{}) interface{} {
+	if in == nil {
+		return def
+	}
+	if def == nil {
+		return in
+	}
+	return mapmerge(in, def)
 }
 
 // WithDefaults -
