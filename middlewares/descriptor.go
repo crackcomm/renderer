@@ -51,16 +51,6 @@ func (desc Descriptor) SetDefaults(opts Options) (res Options, err error) {
 	return
 }
 
-func setDefault(in, def interface{}) interface{} {
-	if in == nil {
-		return def
-	}
-	if def == nil {
-		return in
-	}
-	return mapmerge(in, def)
-}
-
 // WithDefaults -
 func (desc Descriptor) WithDefaults(opts Options) (_ Descriptor, err error) {
 	desc.Options = append([]Option(nil), desc.Options...)
