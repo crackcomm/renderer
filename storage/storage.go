@@ -1,11 +1,12 @@
 package storage
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/crackcomm/renderer/components"
 	"github.com/patrickmn/go-cache"
@@ -78,7 +79,7 @@ func (s *Storage) Template(path string) (t template.Template, err error) {
 // Component - Returns component by name.
 func (s *Storage) Component(name string) (c *components.Component, err error) {
 	path := strings.Replace(name, ".", string(os.PathSeparator), -1)
-	path = filepath.Join(s.opts.dirname, path, "component.json")
+	path = filepath.Join(s.opts.dirname, path, "component.yaml")
 	if tmp, ok := s.cache.components.Get(path); ok {
 		return tmp.(*components.Component), nil
 	}
@@ -87,7 +88,7 @@ func (s *Storage) Component(name string) (c *components.Component, err error) {
 		return
 	}
 	c = new(components.Component)
-	err = json.Unmarshal(body, c)
+	err = yaml.Unmarshal(body, c)
 	if err != nil {
 		return
 	}
