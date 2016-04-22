@@ -19,7 +19,7 @@ Start API server:
 ```sh
 $ renderer web -watch -components ./examples/
 $ # With routes
-$ renderer web -watch -components ./examples/ -routes ./examples/routes.yml
+$ renderer web -watch -components ./examples/ -routes ./examples/routes.yaml
 ```
 
 Render using API:
