@@ -65,11 +65,11 @@ func (ctx *requestContext) Value(key interface{}) interface{} {
 	case "remote":
 		return ctx.Request.RemoteAddr
 	case "url":
-		return ctx.getFromURL(key, split[1:]...)
+		return ctx.getFromURL(key, split[2:]...)
 	case "header":
-		return ctx.getFromHeader(split[1:]...)
+		return ctx.getFromHeader(split[2:]...)
 	case "form":
-		return ctx.getFromForm(split[1:]...)
+		return ctx.getFromForm(split[2:]...)
 	}
 
 	return ctx.Context.Value(key)
