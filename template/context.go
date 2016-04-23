@@ -34,3 +34,12 @@ func (ctx Context) Merge(source Context) Context {
 	}
 	return ctx
 }
+
+// Clone - Clones context.
+func (ctx Context) Clone() (res Context) {
+	res = make(Context)
+	for key, value := range ctx {
+		res[key] = value
+	}
+	return
+}

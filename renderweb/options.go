@@ -75,7 +75,7 @@ func WithMiddleware(m middlewares.Handler) Option {
 func defaultCtxSetter(o *options) middlewares.Handler {
 	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 		if _, ok := components.TemplateContext(ctx); !ok && o.defaultCtx != nil {
-			ctx = components.NewTemplateContext(ctx, o.defaultCtx)
+			ctx = components.NewTemplateContext(ctx, o.defaultCtx.Clone())
 		}
 		next.ServeHTTPC(ctx, w, r)
 	})
