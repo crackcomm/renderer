@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/rs/xhandler"
-	"github.com/rs/xmux"
 	"golang.org/x/net/context"
 
 	"github.com/crackcomm/renderer/components"
@@ -40,6 +39,5 @@ func (h *Handler) Construct(opts ...Option) (xhandler.HandlerC, error) {
 func initMiddleware(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 	ctx = NewRequestContext(ctx, r)
 	ctx = components.WithTemplateKey(ctx, "request", r)
-	ctx = components.WithTemplateKey(ctx, "params", xmux.Params(ctx))
 	next.ServeHTTPC(ctx, w, r)
 }
