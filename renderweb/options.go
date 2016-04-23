@@ -33,8 +33,8 @@ func WithComponentSetter(componentSetter middlewares.Handler) Option {
 	}
 }
 
-// WithTemplateCtxSetter - Sets component template context setter HTTP request middleware.
-func WithTemplateCtxSetter(templateCtxSetter middlewares.Handler) Option {
+// WithTemplateContextSetter - Sets component template context setter HTTP request middleware.
+func WithTemplateContextSetter(templateCtxSetter middlewares.Handler) Option {
 	return func(o *options) {
 		o.templateCtxSetter = templateCtxSetter
 	}
@@ -58,8 +58,8 @@ func WithAlwaysHTML(enable ...bool) Option {
 	}
 }
 
-// WithDefaultTemplateCtx - Sets default template context.
-func WithDefaultTemplateCtx(ctx template.Context) Option {
+// WithDefaultTemplateContext - Sets default template context.
+func WithDefaultTemplateContext(ctx template.Context) Option {
 	return func(o *options) {
 		o.defaultCtx = ctx
 	}
