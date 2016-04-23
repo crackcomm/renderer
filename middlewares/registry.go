@@ -49,7 +49,7 @@ func (registry *Registry) Construct(m *Middleware) (Handler, error) {
 		return nil, fmt.Errorf("middleware %q doesn't exist", m.Name)
 	}
 	desc := registry.descriptors[m.Name]
-	opts, err := desc.SetDefaults(m.Options)
+	opts, err := desc.SetDefaultOptions(m.Options)
 	if err != nil {
 		return nil, err
 	}

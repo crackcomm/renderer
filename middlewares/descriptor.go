@@ -35,14 +35,10 @@ type Constructor func(Options) (Handler, error)
 // Handler - Middleware http handler.
 type Handler func(next xhandler.HandlerC) xhandler.HandlerC
 
-// SetDefaults - Sets default options and returns error if some required are missing.
-func (desc Descriptor) SetDefaults(opts Options) (res Options, err error) {
+// SetDefaultOptions - Sets default options and returns error if some required are missing.
+func (desc Descriptor) SetDefaultOptions(opts Options) (res Options, err error) {
 	res = opts.Clone()
 	for _, opt := range desc.Options {
-		_, has := res[opt.Name]
-		if has {
-			continue
-		}
 		res[opt.Name] = setDefault(res[opt.Name], opt.Default)
 		if opt.Required && res[opt.Name] == nil {
 			return nil, fmt.Errorf("middleware %q requires %q option value", desc.Name, opt.Name)
