@@ -8,12 +8,12 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/crackcomm/renderer/components"
 	"github.com/patrickmn/go-cache"
 	"github.com/rjeczalik/notify"
 
-	"bitbucket.org/moovie/util/template"
-	"bitbucket.org/moovie/util/whitespaces"
+	"github.com/crackcomm/renderer/components"
+	"github.com/crackcomm/renderer/helpers"
+	"github.com/crackcomm/renderer/template"
 )
 
 // New - Creates new components storage.
@@ -115,7 +115,7 @@ func (s *Storage) read(path string) (body []byte, err error) {
 		return
 	}
 	if s.opts.removeWhitespace {
-		body = whitespaces.Clean(body)
+		body = helpers.CleanWhitespaces(body)
 	}
 	s.cache.files.Set(path, body, cache.DefaultExpiration)
 	return

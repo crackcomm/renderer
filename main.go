@@ -8,8 +8,6 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
 
-	_ "bitbucket.org/moovie/util/pongo2filters"
-
 	"github.com/crackcomm/renderer/command"
 )
 

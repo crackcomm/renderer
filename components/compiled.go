@@ -1,6 +1,6 @@
 package components
 
-import "bitbucket.org/moovie/util/template"
+import "github.com/crackcomm/renderer/template"
 
 // Compiled - Compiled component ready to render.
 type Compiled struct {

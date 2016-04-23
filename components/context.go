@@ -3,7 +3,7 @@ package components
 import (
 	"golang.org/x/net/context"
 
-	"bitbucket.org/moovie/util/template"
+	"github.com/crackcomm/renderer/template"
 )
 
 type contextKey struct {

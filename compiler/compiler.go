@@ -6,6 +6,7 @@ import (
 
 	"github.com/crackcomm/renderer/components"
 	"github.com/crackcomm/renderer/storage"
+	"github.com/crackcomm/renderer/template"
 )
 
 // Compiler - Components compiler interface.
@@ -84,7 +85,11 @@ func (comp *Compiler) compileTo(compiled *components.Compiled, c *components.Com
 	}
 
 	// Compile `With` templates map and merge into `compiled`
-	compiled.With, err = compiled.With.ParseAndMerge(c.With)
+	if compiled.With != nil && c.With != nil {
+		compiled.With, err = compiled.With.ParseAndMerge(c.With)
+	} else if c.With != nil {
+		compiled.With, err = template.ParseMap(c.With)
+	}
 	if err != nil {
 		return
 	}

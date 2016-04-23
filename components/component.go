@@ -1,6 +1,6 @@
 package components
 
-import "bitbucket.org/moovie/util/template"
+import "github.com/crackcomm/renderer/template"
 
 // Component - Component definition.
 type Component struct {
@@ -30,5 +30,5 @@ type Component struct {
 	Context template.Context `json:"context,omitempty" yaml:"context,omitempty"`
 
 	// With - Like context but values should be templates.
-	With map[string]string `json:"with,omitempty" yaml:"with,omitempty"`
+	With template.Context `json:"with,omitempty" yaml:"with,omitempty"`
 }

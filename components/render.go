@@ -4,8 +4,8 @@ import (
 	"github.com/flosch/pongo2"
 	"github.com/golang/glog"
 
-	"bitbucket.org/moovie/util/stringslice"
-	"bitbucket.org/moovie/util/template"
+	"github.com/crackcomm/renderer/helpers"
+	"github.com/crackcomm/renderer/template"
 )
 
 // Render - Renders compiled component.
@@ -34,7 +34,7 @@ func renderComponent(c *Compiled, main, res *Rendered, ctx template.Context) (er
 		return
 	}
 
-	if glog.V(6) {
+	if glog.V(11) {
 		glog.Infof("[render] name=%q ctx=%#v", c.Name, ctx)
 	}
 
@@ -51,14 +51,18 @@ func renderComponent(c *Compiled, main, res *Rendered, ctx template.Context) (er
 	}
 
 	// Render `Main` component template
-	res.Body, err = template.ExecuteToString(c.Main, ctx)
-	if err != nil {
-		return
+	if c.Main != nil {
+		res.Body, err = template.ExecuteToString(c.Main, ctx)
+		if err != nil {
+			return
+		}
 	}
 
 	// Extend a template if any
 	if c.Extends != nil {
-		ctx["children"] = pongo2.AsSafeValue(res.Body)
+		if res.Body != "" {
+			ctx["children"] = pongo2.AsSafeValue(res.Body)
+		}
 		err = renderComponent(c.Extends, main, res, ctx)
 		if err != nil {
 			return
@@ -82,7 +86,7 @@ func renderAssets(c *Compiled, res *Rendered, ctx template.Context) (err error) 
 	}
 
 	// Merge component scripts into result
-	res.Styles = stringslice.MergeUnique(res.Styles, tmp)
+	res.Styles = helpers.MergeUnique(res.Styles, tmp)
 
 	// Render component scripts
 	tmp, err = template.ExecuteList(c.Scripts, ctx)
@@ -91,7 +95,7 @@ func renderAssets(c *Compiled, res *Rendered, ctx template.Context) (err error) 
 	}
 
 	// Merge component scripts into result
-	res.Scripts = stringslice.MergeUnique(res.Scripts, tmp)
+	res.Scripts = helpers.MergeUnique(res.Scripts, tmp)
 	return
 }
 

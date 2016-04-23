@@ -1,6 +1,11 @@
-package middlewares
+package helpers
 
-func setDefault(in, def interface{}) interface{} {
+// WithDefaults - Returns input with defaults.
+// If input is empty returns default.
+// If default is empty returns input.
+// If both are not empty tries to merge them.
+// Merge happens when both are maps of strings and interfaces.
+func WithDefaults(in, def interface{}) interface{} {
 	if in == nil {
 		return def
 	}
@@ -51,12 +56,12 @@ func mergeDefaults(dest, extra interface{}) interface{} {
 			return d
 		case map[interface{}]interface{}:
 			for k, v := range e {
-				d[k] = setDefault(d[k], v)
+				d[k] = WithDefaults(d[k], v)
 			}
 			return d
 		case map[string]interface{}:
 			for k, v := range e {
-				d[k] = setDefault(d[k], v)
+				d[k] = WithDefaults(d[k], v)
 			}
 			return d
 		default:
@@ -74,12 +79,12 @@ func mergeDefaults(dest, extra interface{}) interface{} {
 		case map[interface{}]interface{}:
 			for k, v := range e {
 				key := k.(string)
-				d[key] = setDefault(d[key], v)
+				d[key] = WithDefaults(d[key], v)
 			}
 			return d
 		case map[string]interface{}:
 			for k, v := range e {
-				d[k] = setDefault(d[k], v)
+				d[k] = WithDefaults(d[k], v)
 			}
 			return d
 		default:

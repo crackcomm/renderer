@@ -88,12 +88,12 @@ func (ctx *requestContext) getFromURL(key interface{}, rest ...string) interface
 		if len(rest) == 0 {
 			return ctx.Request.URL.Query()
 		}
-		return ctx.Request.URL.Query().Get(strings.Join(rest, "."))
+		return ctx.Request.URL.Query().Get(strings.Join(rest[1:], "."))
 	case "params":
 		if len(rest) == 0 {
 			return xmux.Params(ctx.Context)
 		}
-		return xmux.Params(ctx.Context).Get(strings.Join(rest, "."))
+		return xmux.Params(ctx.Context).Get(strings.Join(rest[1:], "."))
 	default:
 		return ctx.Context.Value(key)
 	}

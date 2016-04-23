@@ -7,7 +7,7 @@ import (
 	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
 
-	"bitbucket.org/moovie/util/template"
+	"github.com/crackcomm/renderer/template"
 
 	"github.com/crackcomm/renderer/components"
 	"github.com/crackcomm/renderer/middlewares"

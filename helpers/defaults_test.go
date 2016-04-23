@@ -1,8 +1,8 @@
-package middlewares
+package helpers
 
 import "testing"
 
-func TestSetDefaults(t *testing.T) {
+func TestWithDefaults(t *testing.T) {
 	from := map[string]interface{}{
 		"first": map[string]interface{}{
 			"test": map[string]interface{}{
@@ -18,7 +18,7 @@ func TestSetDefaults(t *testing.T) {
 		},
 	}
 
-	res := setDefault(from, fromDefaults).(map[string]interface{})
+	res := WithDefaults(from, fromDefaults).(map[string]interface{})
 
 	first := res["first"].(map[string]interface{})
 	test := first["test"].(map[string]interface{})

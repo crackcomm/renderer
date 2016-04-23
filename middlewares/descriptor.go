@@ -3,6 +3,7 @@ package middlewares
 import (
 	"fmt"
 
+	"github.com/crackcomm/renderer/helpers"
 	"github.com/rs/xhandler"
 )
 
@@ -39,7 +40,7 @@ type Handler func(next xhandler.HandlerC) xhandler.HandlerC
 func (desc Descriptor) SetDefaultOptions(opts Options) (res Options, err error) {
 	res = opts.Clone()
 	for _, opt := range desc.Options {
-		res[opt.Name] = setDefault(res[opt.Name], opt.Default)
+		res[opt.Name] = helpers.WithDefaults(res[opt.Name], opt.Default)
 		if opt.Required && res[opt.Name] == nil {
 			return nil, fmt.Errorf("middleware %q requires %q option value", desc.Name, opt.Name)
 		}

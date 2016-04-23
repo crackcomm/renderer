@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/golang/glog"
@@ -12,13 +13,11 @@ import (
 
 	"github.com/rs/xhandler"
 
-	"bitbucket.org/moovie/util/httputil"
-	"bitbucket.org/moovie/util/stringslice"
-	"bitbucket.org/moovie/util/template"
-
 	"github.com/crackcomm/renderer/compiler"
 	"github.com/crackcomm/renderer/components"
+	"github.com/crackcomm/renderer/helpers"
 	"github.com/crackcomm/renderer/middlewares"
+	"github.com/crackcomm/renderer/template"
 )
 
 // ToMiddleware - Converts function to middleware.
@@ -59,7 +58,7 @@ func NewUnmarshalFromRequest() middlewares.Handler {
 // Stores result in context to be retrieved with `components.FromContext`.
 func UnmarshalFromQuery(methods ...string) middlewares.Handler {
 	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
-		if len(methods) != 0 && !stringslice.Contain(methods, r.Method) {
+		if len(methods) != 0 && !helpers.Contain(methods, r.Method) {
 			next.ServeHTTPC(ctx, w, r)
 			return
 		}
@@ -67,7 +66,7 @@ func UnmarshalFromQuery(methods ...string) middlewares.Handler {
 		// Read component from request
 		c, err := readComponent(r)
 		if err != nil {
-			httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
+			helpers.WriteError(w, r, http.StatusBadRequest, err.Error())
 			return
 		}
 
@@ -78,40 +77,37 @@ func UnmarshalFromQuery(methods ...string) middlewares.Handler {
 }
 
 func readComponent(r *http.Request) (c *components.Component, err error) {
+	query := r.URL.Query()
 	c = new(components.Component)
-	if b := r.URL.Query().Get("json"); b != "" {
-		err = json.Unmarshal([]byte(b), c)
+	if value := query.Get("json"); value != "" {
+		err = json.Unmarshal([]byte(value), c)
 		return
 	}
-	c.Name = r.URL.Query().Get("name")
+	c.Name = query.Get("name")
 	if c.Name == "" {
 		return nil, errors.New("no component in request")
 	}
-	c.Main = r.URL.Query().Get("main")
-	c.Extends = r.URL.Query().Get("extends")
-	if b := r.URL.Query().Get("styles"); b != "" {
-		c.Styles = strings.Split(b, ",")
-	}
-	if b := r.URL.Query().Get("scripts"); b != "" {
-		c.Scripts = strings.Split(b, ",")
-	}
-	if b := r.URL.Query().Get("require"); b != "" {
+	c.Main = query.Get("main")
+	c.Extends = query.Get("extends")
+	c.Styles = queryStrings(query, "styles")
+	c.Scripts = queryStrings(query, "scripts")
+	if value := query.Get("require"); value != "" {
 		c.Require = make(map[string]components.Component)
-		err = json.Unmarshal([]byte(b), &c.Require)
+		err = json.Unmarshal([]byte(value), &c.Require)
 		if err != nil {
 			return
 		}
 	}
-	if b := r.URL.Query().Get("context"); b != "" {
+	if value := query.Get("context"); value != "" {
 		c.Context = make(template.Context)
-		err = json.Unmarshal([]byte(b), &c.Context)
+		err = json.Unmarshal([]byte(value), &c.Context)
 		if err != nil {
 			return
 		}
 	}
-	if b := r.URL.Query().Get("with"); b != "" {
-		c.With = make(map[string]string)
-		err = json.Unmarshal([]byte(b), &c.With)
+	if value := query.Get("with"); value != "" {
+		c.With = make(template.Context)
+		err = json.Unmarshal([]byte(value), &c.With)
 		if err != nil {
 			return
 		}
@@ -119,18 +115,25 @@ func readComponent(r *http.Request) (c *components.Component, err error) {
 	return
 }
 
+func queryStrings(query url.Values, name string) []string {
+	if value := query.Get(name); value != "" {
+		return strings.Split(value, ",")
+	}
+	return nil
+}
+
 // UnmarshalFromBody - Unmarshals component from request bodyCompileInContext() on certain methods.
 // Stores result in context to be retrieved with `components.FromContext`.
 func UnmarshalFromBody(methods ...string) middlewares.Handler {
 	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
-		if !stringslice.Contain(methods, r.Method) {
+		if !helpers.Contain(methods, r.Method) {
 			next.ServeHTTPC(ctx, w, r)
 			return
 		}
 		c := new(components.Component)
 		err := json.NewDecoder(r.Body).Decode(c)
 		if err != nil {
-			httputil.WriteError(w, r, http.StatusBadRequest, err.Error())
+			helpers.WriteError(w, r, http.StatusBadRequest, err.Error())
 			return
 		}
 		ctx = components.NewContext(ctx, c)
@@ -144,7 +147,7 @@ func CompileInContext(next xhandler.HandlerC) xhandler.HandlerC {
 	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		compiled, err := compiler.Compile(ctx)
 		if err != nil {
-			httputil.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("compile error: %v", err))
+			helpers.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("compile error: %v", err))
 			return
 		}
 		ctx = components.NewCompiledContext(ctx, compiled)
@@ -158,13 +161,13 @@ func RenderInContext(next xhandler.HandlerC) xhandler.HandlerC {
 	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		c, ok := components.CompiledFromContext(ctx)
 		if !ok {
-			httputil.WriteError(w, r, http.StatusBadRequest, "component not compiled")
+			helpers.WriteError(w, r, http.StatusBadRequest, "component not compiled")
 			return
 		}
 		t, _ := components.TemplateContext(ctx)
 		res, err := components.Render(c, t)
 		if err != nil {
-			httputil.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("render error: %v", err))
+			helpers.WriteError(w, r, http.StatusExpectationFailed, fmt.Sprintf("render error: %v", err))
 			return
 		}
 		ctx = components.NewRenderedContext(ctx, res)
@@ -186,7 +189,7 @@ func WriteRendered(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 func WriteRenderedJSON(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	res, ok := components.RenderedFromContext(ctx)
 	if !ok {
-		httputil.WriteError(w, r, http.StatusBadRequest, "component not rendered")
+		helpers.WriteError(w, r, http.StatusBadRequest, "component not rendered")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -199,7 +202,7 @@ func WriteRenderedJSON(ctx context.Context, w http.ResponseWriter, r *http.Reque
 func WriteRenderedHTML(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	res, ok := components.RenderedFromContext(ctx)
 	if !ok {
-		httputil.WriteError(w, r, http.StatusBadRequest, "component not rendered")
+		helpers.WriteError(w, r, http.StatusBadRequest, "component not rendered")
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")
