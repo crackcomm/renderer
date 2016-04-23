@@ -103,6 +103,9 @@ func (ctx *requestContext) getFromForm(rest ...string) interface{} {
 	if len(rest) == 0 {
 		return ctx.Request.Form
 	}
+	if err := ctx.Request.ParseForm(); err != nil {
+		return nil
+	}
 	return ctx.Request.Form.Get(strings.Join(rest, "."))
 }
 
