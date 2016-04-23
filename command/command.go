@@ -115,8 +115,13 @@ var Web = cli.Command{
 		// Create a context with compiler
 		ctx := compiler.NewContext(context.Background(), comp)
 
+		// Render web options
+		renderOpts := []renderweb.Option{
+		// renderweb.WithDefaultTemplateContext(DefaultTemplateContext),
+		}
+
 		// Turn routes into HTTP handler
-		api, err := constructHandler(c.StringSlice("routes")...)
+		api, err := constructHandler(c.StringSlice("routes"), renderOpts)
 		if err != nil {
 			glog.Fatalf("[routes] %v", err)
 		}
@@ -125,6 +130,7 @@ var Web = cli.Command{
 		handler := &atomicHandler{
 			Context:  ctx,
 			Current:  xhandler.New(ctx, api),
+			Options:  renderOpts,
 			Watching: c.Bool("watch"),
 			Routes:   c.StringSlice("routes"),
 			Mutex:    new(sync.RWMutex),
@@ -179,6 +185,7 @@ var Web = cli.Command{
 type atomicHandler struct {
 	Context context.Context
 	Current http.Handler
+	Options []renderweb.Option
 
 	Mutex    *sync.RWMutex
 	Watching bool
@@ -200,7 +207,7 @@ func (handler *atomicHandler) FlushCache() {
 }
 
 func (handler *atomicHandler) construct() (_ http.Handler, err error) {
-	h, err := constructHandler(handler.Routes...)
+	h, err := constructHandler(handler.Routes, handler.Options)
 	if err != nil {
 		return
 	}
@@ -223,22 +230,22 @@ func (handler *atomicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	h.ServeHTTP(w, r)
 }
 
-func constructHandler(filenames ...string) (_ xhandler.HandlerC, err error) {
+func constructHandler(filenames []string, options []renderweb.Option) (_ xhandler.HandlerC, err error) {
 	if len(filenames) == 0 {
 		return renderweb.New(), nil
 	}
 
-	routes, err := constructRoutes(filenames...)
+	routes, err := constructRoutes(filenames, options)
 	if err != nil {
 		return
 	}
 
 	// Turn routes into HTTP handler
-	return routes.Construct()
+	return routes.Construct(options...)
 }
 
 // constructRoutes - Constructs routes map from multiple filenames.
-func constructRoutes(filenames ...string) (res renderweb.Routes, err error) {
+func constructRoutes(filenames []string, options []renderweb.Option) (res renderweb.Routes, err error) {
 	res = make(renderweb.Routes)
 	for _, filename := range filenames {
 		var routes renderweb.Routes
