@@ -106,12 +106,16 @@ func withComponentDefaults(c *Compiled, ctx template.Context) (_ template.Contex
 	}
 
 	// Execute component's `With` templates
-	w, err := c.With.Execute(ctx)
-	if err != nil {
-		return
+	for key, node := range c.With {
+		_, has := ctx[key]
+		if has {
+			continue
+		}
+		ctx[key], err = node.Execute(ctx)
+		if err != nil {
+			return
+		}
 	}
 
-	// Merge compiled `With` into context
-	ctx = ctx.Merge(w)
 	return ctx, nil
 }
