@@ -1,6 +1,9 @@
 package components
 
 import (
+	"strconv"
+	"strings"
+
 	"golang.org/x/net/context"
 
 	"github.com/crackcomm/renderer/template"
@@ -41,7 +44,60 @@ func NewRenderedContext(ctx context.Context, c *Rendered) context.Context {
 // NewTemplateContext - Creates a new context with template context set.
 // Template context can be retrieved using `renderer.TemplateContext(context.Context)`.
 func NewTemplateContext(ctx context.Context, t template.Context) context.Context {
-	return context.WithValue(ctx, templateCtxKey, t)
+	return &templateContext{
+		Context:     ctx,
+		templateCtx: t,
+	}
+}
+
+type templateContext struct {
+	context.Context
+	templateCtx template.Context
+}
+
+func (ctx *templateContext) Value(key interface{}) interface{} {
+	if key == templateCtxKey {
+		return ctx.templateCtx
+	}
+	keystr, ok := key.(string)
+	if !ok {
+		return ctx.Context.Value(key)
+	}
+	keysplit := strings.Split(keystr, ".")
+	if len(keysplit) < 2 || keysplit[0] != "template" {
+		return ctx.Context.Value(key)
+	}
+	value := getDeepValue(ctx.templateCtx, keysplit[1:])
+	if value != nil {
+		return value
+	}
+	return ctx.Context.Value(key)
+}
+
+func getDeepValue(v interface{}, keys []string) interface{} {
+	if len(keys) == 0 {
+		return v
+	}
+	key := keys[0]
+	rest := keys[1:]
+	switch t := v.(type) {
+	case template.Context:
+		return getDeepValue(t[key], rest)
+	case map[string]interface{}:
+		return getDeepValue(t[key], rest)
+	case map[interface{}]interface{}:
+		return getDeepValue(t[key], rest)
+	case []interface{}:
+		n, err := strconv.Atoi(key)
+		if err != nil {
+			return nil
+		}
+		if len(t) <= n {
+			return nil
+		}
+		return t[n]
+	}
+	return nil
 }
 
 // WithTemplateKey - Sets template context key-value pair in `context.Context`.
