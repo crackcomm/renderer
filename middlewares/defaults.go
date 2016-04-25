@@ -2,10 +2,12 @@ package middlewares
 
 import (
 	"net/http"
+	"sort"
 
-	"github.com/crackcomm/renderer/components"
 	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
+
+	"github.com/crackcomm/renderer/components"
 )
 
 // DefaultRegistry - Default global registry.
@@ -50,11 +52,19 @@ func init() {
 			{Name: "middlewares", Description: "middleware descriptors list"},
 		},
 	}, func(_ Options) (Handler, error) {
+		descriptors := Descriptors()
+		sort.Sort(byName(descriptors))
 		return func(next xhandler.HandlerC) xhandler.HandlerC {
 			return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				ctx = components.WithTemplateKey(ctx, "middlewares", Descriptors())
+				ctx = components.WithTemplateKey(ctx, "middlewares", descriptors)
 				next.ServeHTTPC(ctx, w, r)
 			})
 		}, nil
 	})
 }
+
+type byName []Descriptor
+
+func (a byName) Len() int           { return len(a) }
+func (a byName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byName) Less(i, j int) bool { return a[i].Name < a[j].Name }
