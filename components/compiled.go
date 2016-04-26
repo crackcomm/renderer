@@ -1,6 +1,6 @@
 package components
 
-import "github.com/crackcomm/renderer/template"
+import "tower.pro/renderer/template"
 
 // Compiled - Compiled component ready to render.
 type Compiled struct {

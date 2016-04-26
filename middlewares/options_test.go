@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/crackcomm/renderer/options"
+	"tower.pro/renderer/options"
 )
 
 func TestConstructOptions(t *testing.T) {

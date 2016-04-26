@@ -7,8 +7,8 @@ import (
 	"github.com/rs/xmux"
 	"golang.org/x/net/context"
 
-	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/middlewares"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/middlewares"
 )
 
 // Handler - Web route handler.

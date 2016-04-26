@@ -7,9 +7,9 @@ import (
 	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
 
-	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/middlewares"
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/middlewares"
+	"tower.pro/renderer/template"
 )
 
 type webOptions struct {

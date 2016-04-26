@@ -11,9 +11,9 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/rjeczalik/notify"
 
-	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/helpers"
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/helpers"
+	"tower.pro/renderer/template"
 )
 
 // New - Creates new components storage.

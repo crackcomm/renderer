@@ -1,6 +1,6 @@
 package options
 
-import "github.com/crackcomm/renderer/helpers"
+import "tower.pro/renderer/helpers"
 
 // Options - Middleware options type.
 // As read from routes configuration file.

@@ -6,7 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/template"
 )
 
 type contextKey struct {

@@ -13,11 +13,11 @@ import (
 
 	"github.com/rs/xhandler"
 
-	"github.com/crackcomm/renderer/compiler"
-	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/helpers"
-	"github.com/crackcomm/renderer/middlewares"
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/compiler"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/helpers"
+	"tower.pro/renderer/middlewares"
+	"tower.pro/renderer/template"
 )
 
 // ToMiddleware - Converts function to middleware.

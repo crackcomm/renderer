@@ -1,6 +1,6 @@
 package components
 
-import "github.com/crackcomm/renderer/template"
+import "tower.pro/renderer/template"
 
 // Component - Component definition.
 type Component struct {

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/crackcomm/renderer/storage"
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/storage"
+	"tower.pro/renderer/template"
 )
 
 // parseTemplate - Parse template from string.

@@ -11,10 +11,10 @@ import (
 	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
 
-	"github.com/crackcomm/renderer/compiler"
-	"github.com/crackcomm/renderer/renderweb"
-	"github.com/crackcomm/renderer/storage"
-	"github.com/crackcomm/renderer/watcher"
+	"tower.pro/renderer/compiler"
+	"tower.pro/renderer/renderweb"
+	"tower.pro/renderer/storage"
+	"tower.pro/renderer/watcher"
 
 	// Profiler
 	_ "net/http/pprof"

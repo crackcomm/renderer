@@ -4,9 +4,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/storage"
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/storage"
+	"tower.pro/renderer/template"
 )
 
 // Compiler - Components compiler interface.

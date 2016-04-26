@@ -8,7 +8,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
 
-	"github.com/crackcomm/renderer/command"
+	"tower.pro/renderer/command"
 )
 
 func main() {

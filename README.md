@@ -1,6 +1,6 @@
 # Renderer
 
-[![GoDoc](https://godoc.org/github.com/crackcomm/renderer?status.svg)](https://godoc.org/github.com/crackcomm/renderer)
+[![GoDoc](https://godoc.org/tower.pro/renderer?status.svg)](https://godoc.org/tower.pro/renderer)
 
 ## Usage
 
@@ -9,7 +9,7 @@ Documentation for this software is not planned.
 ### Installation
 
 ```sh
-$ go get -u github.com/crackcomm/renderer
+$ go get -u tower.pro/renderer
 ```
 
 ### API

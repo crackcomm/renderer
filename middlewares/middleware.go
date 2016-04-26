@@ -3,7 +3,7 @@ package middlewares
 import (
 	"fmt"
 
-	"github.com/crackcomm/renderer/options"
+	"tower.pro/renderer/options"
 )
 
 // Descriptor - Web route middleware descriptor.

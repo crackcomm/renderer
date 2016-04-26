@@ -6,10 +6,10 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/helpers"
-	"github.com/crackcomm/renderer/options"
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/helpers"
+	"tower.pro/renderer/options"
+	"tower.pro/renderer/template"
 )
 
 // Options - Web route middleware constructor options interface.

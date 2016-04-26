@@ -7,9 +7,9 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/crackcomm/renderer/helpers"
-	"github.com/crackcomm/renderer/middlewares"
-	"github.com/crackcomm/renderer/options"
+	"tower.pro/renderer/helpers"
+	"tower.pro/renderer/middlewares"
+	"tower.pro/renderer/options"
 )
 
 // RoutesFromFile - Reads routes from yaml file.

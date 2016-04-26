@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/options"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/options"
 	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
 )

@@ -3,7 +3,7 @@ package compiler
 import (
 	"errors"
 
-	"github.com/crackcomm/renderer/components"
+	"tower.pro/renderer/components"
 
 	"golang.org/x/net/context"
 )

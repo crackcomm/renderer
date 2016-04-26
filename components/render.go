@@ -4,8 +4,8 @@ import (
 	"github.com/flosch/pongo2"
 	"github.com/golang/glog"
 
-	"github.com/crackcomm/renderer/helpers"
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/helpers"
+	"tower.pro/renderer/template"
 )
 
 // Render - Renders compiled component.

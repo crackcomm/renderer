@@ -10,11 +10,11 @@ import (
 	"golang.org/x/net/context"
 	"gopkg.in/yaml.v2"
 
-	"github.com/crackcomm/renderer/options"
-	"github.com/crackcomm/renderer/template"
+	"tower.pro/renderer/options"
+	"tower.pro/renderer/template"
 
-	"github.com/crackcomm/renderer/components"
-	"github.com/crackcomm/renderer/middlewares"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/middlewares"
 )
 
 var data = `
