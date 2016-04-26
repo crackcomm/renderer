@@ -16,7 +16,7 @@ import (
 // 	* WithComponentSetter(UnmarshalFromRequest()),
 //
 func New(opts ...Option) xhandler.HandlerC {
-	o := &options{
+	o := &webOptions{
 		reqTimeout:      time.Second * 15,
 		componentSetter: UnmarshalFromRequest,
 	}

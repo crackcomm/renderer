@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/context"
 	"gopkg.in/yaml.v2"
 
+	"github.com/crackcomm/renderer/options"
 	"github.com/crackcomm/renderer/template"
 
 	"github.com/crackcomm/renderer/components"
@@ -46,7 +47,7 @@ var expected = Routes{
 		Middlewares: []*middlewares.Middleware{
 			{
 				Name:    "my_test_middleware",
-				Options: middlewares.Options{"opts1": "test_value"},
+				Options: options.Options{"opts1": "test_value"},
 			},
 		},
 	},

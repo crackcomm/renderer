@@ -1,6 +1,7 @@
 package renderweb
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/rs/xhandler"
@@ -31,7 +32,7 @@ func (routes Routes) Construct(options ...Option) (xhandler.HandlerC, error) {
 		// Construct handler
 		h, err := handler.Construct(options...)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%q: %v", route, err)
 		}
 
 		// Bind route handler
