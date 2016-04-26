@@ -26,6 +26,34 @@ func ParseMap(m Context) (res Map, err error) {
 	return
 }
 
+// Execute - Executes a map of templates and/or values.
+func (nodes Map) Execute(ctx Context) (res Context, err error) {
+	res = make(Context)
+	for key, value := range nodes {
+		res[key], err = value.Execute(ctx)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// ParseAndMerge - Parses a map of templates and merges into current map.
+// If `t == nil` it may return a new map.
+func (nodes Map) ParseAndMerge(input Context) (Map, error) {
+	if len(input) == 0 {
+		return nodes, nil
+	}
+	extra, err := ParseMap(input)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range extra {
+		nodes[key] = value
+	}
+	return nodes, nil
+}
+
 func parseNode(value interface{}) (MapNode, error) {
 	switch v := value.(type) {
 	case string:
@@ -82,34 +110,6 @@ func parseNode(value interface{}) (MapNode, error) {
 		return res, nil
 	}
 	return &mapNodeInterface{value: value}, nil
-}
-
-// Execute - Executes a map of templates and/or values.
-func (nodes Map) Execute(ctx Context) (res Context, err error) {
-	res = make(Context)
-	for key, value := range nodes {
-		res[key], err = value.Execute(ctx)
-		if err != nil {
-			return
-		}
-	}
-	return
-}
-
-// ParseAndMerge - Parses a map of templates and merges into current map.
-// If `t == nil` it may return a new map.
-func (nodes Map) ParseAndMerge(input Context) (Map, error) {
-	if len(input) == 0 {
-		return nodes, nil
-	}
-	extra, err := ParseMap(input)
-	if err != nil {
-		return nil, err
-	}
-	for key, value := range extra {
-		nodes[key] = value
-	}
-	return nodes, nil
 }
 
 type mapNodeMap struct {
