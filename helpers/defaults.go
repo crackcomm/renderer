@@ -35,35 +35,6 @@ func mergeDefaults(dest, extra interface{}) interface{} {
 				}
 			}
 			return d
-		case map[interface{}]interface{}:
-			for k, v := range e {
-				if _, ok := d[k.(string)]; !ok {
-					d[k.(string)] = v.(string)
-				}
-			}
-			return d
-		default:
-			return dest
-		}
-	case map[interface{}]interface{}:
-		switch e := extra.(type) {
-		case map[string]string:
-			for k, v := range e {
-				if _, ok := d[k]; !ok {
-					d[k] = v
-				}
-			}
-			return d
-		case map[interface{}]interface{}:
-			for k, v := range e {
-				d[k] = WithDefaults(d[k], v)
-			}
-			return d
-		case map[string]interface{}:
-			for k, v := range e {
-				d[k] = WithDefaults(d[k], v)
-			}
-			return d
 		default:
 			return dest
 		}
@@ -76,12 +47,6 @@ func mergeDefaults(dest, extra interface{}) interface{} {
 				}
 			}
 			return d
-		case map[interface{}]interface{}:
-			for k, v := range e {
-				key := k.(string)
-				d[key] = WithDefaults(d[key], v)
-			}
-			return d
 		case map[string]interface{}:
 			for k, v := range e {
 				d[k] = WithDefaults(d[k], v)
@@ -89,6 +54,13 @@ func mergeDefaults(dest, extra interface{}) interface{} {
 			return d
 		default:
 			return dest
+		}
+	case []interface{}:
+		switch e := extra.(type) {
+		case []interface{}:
+			return append(d, e...)
+		default:
+			return d
 		}
 	default:
 		return dest
