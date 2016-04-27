@@ -41,6 +41,10 @@ func constructOptions(md *Middleware) (opts *middlewareOpts, err error) {
 		options: md.Options,
 		context: make(map[string]contextNode),
 	}
+	opts.template, err = template.ParseMap(template.Context(md.Template))
+	if err != nil {
+		return
+	}
 	for key, value := range md.Context {
 		opts.context[key] = newContextNode(value)
 	}
@@ -144,7 +148,9 @@ func (opts *middlewareOpts) String(ctx context.Context, desc *options.Option) (s
 func (opts *middlewareOpts) getValue(ctx context.Context, desc *options.Option) (_ interface{}, _ error) {
 	node, ok := opts.context[desc.Name]
 	if ok {
-		return node.Value(ctx), nil
+		if v := node.Value(ctx); v != nil {
+			return v, nil
+		}
 	}
 	template, ok := opts.template[desc.Name]
 	if ok {
@@ -189,6 +195,9 @@ func valueDuration(value interface{}) (_ time.Duration, _ bool, _ error) {
 	case float64:
 		return time.Duration(t), true, nil
 	case string:
+		if t == "" {
+			return
+		}
 		v, err := time.ParseDuration(t)
 		if err != nil {
 			return 0, false, err

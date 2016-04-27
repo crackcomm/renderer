@@ -12,7 +12,6 @@ import (
 	"github.com/rjeczalik/notify"
 
 	"tower.pro/renderer/components"
-	"tower.pro/renderer/helpers"
 	"tower.pro/renderer/template"
 )
 
@@ -115,7 +114,7 @@ func (s *Storage) read(path string) (body []byte, err error) {
 		return
 	}
 	if s.opts.removeWhitespace {
-		body = helpers.CleanWhitespaces(body)
+		body = CleanWhitespaces(body)
 	}
 	s.cache.files.Set(path, body, cache.DefaultExpiration)
 	return

@@ -32,7 +32,9 @@ func ToMiddleware(fn func(ctx context.Context, w http.ResponseWriter, r *http.Re
 // ComponentMiddleware - Creates a middleware that sets given component in ctx.
 func ComponentMiddleware(c *components.Component) middlewares.Handler {
 	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
-		ctx = components.NewContext(ctx, c)
+		if c != nil {
+			ctx = components.NewContext(ctx, c)
+		}
 		next.ServeHTTPC(ctx, w, r)
 	})
 }

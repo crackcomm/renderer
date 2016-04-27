@@ -24,7 +24,7 @@
 //  OTHER DEALINGS IN THE SOFTWARE.
 //
 
-package helpers
+package storage
 
 // CleanWhitespaces - Replaces character series of space \n, \t, \f, \r into a
 // single space or newline (when the serie contained a \n or \r).
