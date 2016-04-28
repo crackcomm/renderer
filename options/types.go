@@ -51,7 +51,11 @@ func CheckType(t Type, v interface{}) bool {
 	if t == TypeKey || t == TypeTemplate || t == TypeDestination {
 		t = TypeString
 	}
-	return ValueType(v) == t
+	vt := ValueType(v)
+	if vt == t {
+		return true
+	}
+	return IsConvertible(vt, t)
 }
 
 // ValueType - Gets value type.
@@ -84,4 +88,14 @@ func ValueType(v interface{}) Type {
 		return TypeDuration
 	}
 	return TypeUnknown
+}
+
+// ContainsType - Returns true if value type matches given type.
+func ContainsType(list []Type, t Type) bool {
+	for _, el := range list {
+		if el == t {
+			return true
+		}
+	}
+	return false
 }
