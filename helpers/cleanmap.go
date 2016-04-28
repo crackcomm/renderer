@@ -1,9 +1,13 @@
 package helpers
 
+import "tower.pro/renderer/template"
+
 // CleanMapDeep - Cleans map deeply. Converting all map[interface{}]interface{} to map[string]interface{}.
 // OK is false when obtained invalid type in map key.
 func CleanMapDeep(v interface{}) (_ interface{}, ok bool) {
 	switch m := v.(type) {
+	case template.Context:
+		return CleanMapDeep(map[string]interface{}(m))
 	case map[string]interface{}:
 		for k, v := range m {
 			m[k], ok = CleanMapDeep(v)
