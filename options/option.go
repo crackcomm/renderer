@@ -2,15 +2,15 @@ package options
 
 // Option - Option descriptor.
 type Option struct {
-	ID      string
-	Type    Type
-	Name    string
-	Short   string
-	Long    string
-	OneOf   []interface{}
-	Always  bool
-	Default interface{}
-	DefKey  interface{}
+	ID      string        `json:"id,omitempty"`
+	Type    Type          `json:"type,omitempty"`
+	Name    string        `json:"name,omitempty"`
+	Short   string        `json:"short,omitempty"`
+	Long    string        `json:"long,omitempty"`
+	Always  bool          `json:"always,omitempty"`
+	Default interface{}   `json:"default,omitempty"`
+	DefKey  interface{}   `json:"def_key,omitempty"`
+	OneOf   []interface{} `json:"one_of,omitempty"`
 }
 
 // Exists - Checks if option exists by name.
@@ -19,6 +19,22 @@ func Exists(opts []*Option, name string) bool {
 		if opt.Name == name {
 			return true
 		}
+	}
+	return false
+}
+
+// IsEmpty - Basically works only if interface is nil or empty string.
+func IsEmpty(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	switch t := v.(type) {
+	case string:
+		return t == ""
+	case []interface{}:
+		return len(t) == 0
+	case map[string]interface{}:
+		return len(t) == 0
 	}
 	return false
 }
