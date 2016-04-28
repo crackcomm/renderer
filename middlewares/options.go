@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -17,9 +18,6 @@ type Options interface {
 	// Int - Gets option int value.
 	Int(context.Context, *options.Option) (int, error)
 
-	// Map - Gets option map value.
-	Map(context.Context, *options.Option) (map[string]interface{}, error)
-
 	// Bool - Gets option bool value.
 	Bool(context.Context, *options.Option) (bool, error)
 
@@ -28,6 +26,12 @@ type Options interface {
 
 	// Duration - Gets duration value.
 	Duration(context.Context, *options.Option) (time.Duration, error)
+
+	// Map - Gets option map value.
+	Map(context.Context, *options.Option) (map[string]interface{}, error)
+
+	// List - Gets option list value.
+	List(context.Context, *options.Option) ([]interface{}, error)
 }
 
 type middlewareOpts struct {
@@ -48,36 +52,6 @@ func constructOptions(md *Middleware) (opts *middlewareOpts, err error) {
 	for key, value := range md.Context {
 		opts.context[key] = newContextNode(value)
 	}
-	return
-}
-
-// Map - Gets option map value.
-func (opts *middlewareOpts) Map(ctx context.Context, desc *options.Option) (res map[string]interface{}, err error) {
-	res = make(map[string]interface{})
-	if tmpl, ok := opts.template[desc.Name]; ok {
-		tctx, _ := components.TemplateContext(ctx)
-		v, err := tmpl.Execute(tctx)
-		if err != nil {
-			return nil, err
-		}
-		values, ok := v.(template.Context)
-		if ok {
-			for key, value := range values {
-				res[key] = helpers.WithDefaults(res[key], value)
-			}
-		}
-	}
-	if node, ok := opts.context[desc.Name].(*contextMap); ok {
-		for key, value := range node.Map(ctx) {
-			res[key] = helpers.WithDefaults(res[key], value)
-		}
-	}
-	if options, ok := opts.options[desc.Name].(map[string]interface{}); ok {
-		for key, value := range options {
-			res[key] = helpers.WithDefaults(res[key], value)
-		}
-	}
-	res = helpers.WithDefaults(res, desc.Default).(map[string]interface{})
 	return
 }
 
@@ -145,6 +119,64 @@ func (opts *middlewareOpts) String(ctx context.Context, desc *options.Option) (s
 	return v, nil
 }
 
+// Map - Gets option map value.
+func (opts *middlewareOpts) Map(ctx context.Context, desc *options.Option) (res map[string]interface{}, err error) {
+	res = make(map[string]interface{})
+	if temp, ok := opts.template[desc.Name]; ok {
+		tempctx, ok := components.TemplateContext(ctx)
+		if !ok {
+			return nil, errors.New("No template context set")
+		}
+		v, err := temp.Execute(tempctx)
+		if err != nil {
+			return nil, err
+		}
+		if value, ok := helpers.CleanMapDeep(v); ok {
+			res = setDefaults(res, value)
+		}
+	}
+	if node, ok := opts.context[desc.Name]; ok {
+		if value, ok := node.Value(ctx).(map[string]interface{}); ok {
+			res = setDefaults(res, value)
+		}
+	}
+	if options, ok := opts.options[desc.Name].(map[string]interface{}); ok {
+		res = setDefaults(res, options)
+	}
+	res = setDefaults(res, desc.Default)
+	return
+}
+
+// List - Gets option list value.
+func (opts *middlewareOpts) List(ctx context.Context, desc *options.Option) (res []interface{}, err error) {
+	if temp, ok := opts.template[desc.Name]; ok {
+		tempctx, _ := components.TemplateContext(ctx)
+		v, err := temp.Execute(tempctx)
+		if err != nil {
+			return nil, err
+		}
+		if values, ok := v.([]interface{}); ok {
+			res = append(res, values...)
+		}
+	}
+	if node, ok := opts.context[desc.Name]; ok {
+		if value, ok := node.Value(ctx).([]interface{}); ok {
+			res = append(res, value...)
+		}
+	}
+	if options, ok := opts.options[desc.Name].([]interface{}); ok {
+		res = append(res, options...)
+	}
+	if defaults, ok := desc.Default.([]interface{}); ok {
+		res = append(res, defaults...)
+	}
+	return
+}
+
+func setDefaults(target map[string]interface{}, defaults interface{}) map[string]interface{} {
+	return helpers.WithDefaults(target, defaults).(map[string]interface{})
+}
+
 func (opts *middlewareOpts) getValue(ctx context.Context, desc *options.Option) (_ interface{}, _ error) {
 	node, ok := opts.context[desc.Name]
 	if ok {
@@ -154,8 +186,13 @@ func (opts *middlewareOpts) getValue(ctx context.Context, desc *options.Option) 
 	}
 	template, ok := opts.template[desc.Name]
 	if ok {
-		tctx, _ := components.TemplateContext(ctx)
-		return template.Execute(tctx)
+		tempctx, _ := components.TemplateContext(ctx)
+		res, err := template.Execute(tempctx)
+		if err != nil {
+			return nil, err
+		}
+		v, _ := helpers.CleanMapDeep(res)
+		return v, nil
 	}
 	if v, ok := opts.options[desc.Name]; ok {
 		return v, nil
