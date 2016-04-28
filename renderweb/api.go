@@ -1,14 +1,14 @@
 package renderweb
 
 import (
-	"time"
-
 	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
 )
 
 // New - New renderer web server API handler.
 // Context should have a compiler set with `compiler.NewContext`.
+// To always render HTML instead of JSON on Accept `application/json`
+// use `WithAlwaysHTML()` option.
 //
 // Default options are:
 //
@@ -16,16 +16,10 @@ import (
 // 	* WithComponentSetter(UnmarshalFromRequest()),
 //
 func New(opts ...Option) xhandler.HandlerC {
-	o := &webOptions{
-		reqTimeout:      time.Second * 15,
-		componentSetter: UnmarshalFromRequest,
-	}
-	o.templateCtxSetter = defaultCtxSetter(o)
+	return construct(constructOpts(opts...))
+}
 
-	for _, opt := range opts {
-		opt(o)
-	}
-
+func construct(o *webOptions) xhandler.HandlerC {
 	var chain xhandler.Chain
 	chain.UseC(xhandler.CloseHandler)
 	chain.UseC(xhandler.TimeoutHandler(o.reqTimeout))
