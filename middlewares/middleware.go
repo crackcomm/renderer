@@ -77,22 +77,26 @@ func (middleware *Middleware) ConstructOptions() (_ Options, err error) {
 
 func (middleware *Middleware) has(name string, t options.Type) (has bool, valid bool) {
 	if value, ok := middleware.Options[name]; ok {
+		if options.IsEmpty(value) {
+			return
+		}
 		if t == options.TypeKey || t == options.TypeTemplate {
 			return true, false
 		}
 		return true, options.CheckType(t, value)
 	}
 	if value, ok := middleware.Context[name]; ok {
-		if t == options.TypeKey {
-			return true, true
+		if options.IsEmpty(value) {
+			return
 		}
-		return true, options.CheckType(t, value)
+		// We cannot define type of value without context
+		return true, options.IsConvertible(options.TypeKey, t)
 	}
 	if value, ok := middleware.Template[name]; ok {
-		if t == options.TypeTemplate {
-			return true, true
+		if options.IsEmpty(value) {
+			return
 		}
-		return true, options.CheckType(t, value)
+		return true, options.IsConvertible(options.TypeTemplate, t)
 	}
 	return false, false
 }
