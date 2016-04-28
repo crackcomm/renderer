@@ -2,7 +2,11 @@ package renderweb
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
+
+	"golang.org/x/net/context"
+	"golang.org/x/net/trace"
 
 	"github.com/rs/xhandler"
 	"github.com/rs/xmux"
@@ -27,6 +31,8 @@ func (routes Routes) Construct(options ...Option) (xhandler.HandlerC, error) {
 	// Create new router
 	mux := xmux.New()
 
+	tracing := tracingEnabled(options...)
+
 	// Bind all routes handlers
 	for route, handler := range routes {
 		// Construct handler
@@ -35,10 +41,24 @@ func (routes Routes) Construct(options ...Option) (xhandler.HandlerC, error) {
 			return nil, fmt.Errorf("%q: %v", route, err)
 		}
 
+		if tracing {
+			h = routeTracing(route, h)
+		}
+
 		// Bind route handler
 		mux.HandleC(route.Method, route.Path, h)
 	}
 
 	// Return handler
 	return mux, nil
+}
+
+func routeTracing(route Route, handler xhandler.HandlerC) xhandler.HandlerC {
+	rs := route.String()
+	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		tr := trace.New(rs, fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+		ctx = trace.NewContext(ctx, tr)
+		handler.ServeHTTPC(ctx, w, r)
+		tr.Finish()
+	})
 }
