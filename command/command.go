@@ -6,10 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/codegangsta/cli"
 	"github.com/golang/glog"
 	"github.com/rs/xhandler"
-	"golang.org/x/net/context"
 
 	"tower.pro/renderer/compiler"
 	"tower.pro/renderer/renderweb"
@@ -19,6 +20,15 @@ import (
 	// Profiler
 	_ "net/http/pprof"
 )
+
+// DefaultWebOptions - Default renderweb options.
+// You can append options here like renderweb.WithMiddleware.
+var DefaultWebOptions = []renderweb.Option{
+	// It means we won't spit out component JSON, just HTML
+	// in case of API routes like one using json.encode they
+	// will still work as expected with no difference
+	renderweb.WithAlwaysHTML(true),
+}
 
 // Commands - List of renderer commands.
 var Commands = []cli.Command{
@@ -86,8 +96,16 @@ var Web = cli.Command{
 
 		// Profiler
 		cli.StringFlag{
-			Name:  "pprof-addr",
-			Usage: "pprof listening address",
+			Name:   "pprof-addr",
+			EnvVar: "PPROF_ADDR",
+			Usage:  "pprof listening address",
+		},
+
+		// Tracing
+		cli.BoolFlag{
+			Name:   "tracing-enable",
+			EnvVar: "TRACING_ENABLE",
+			Usage:  "enable tracing",
 		},
 	},
 	Action: func(c *cli.Context) {
@@ -115,13 +133,12 @@ var Web = cli.Command{
 		// Create a context with compiler
 		ctx := compiler.NewContext(context.Background(), comp)
 
-		// Render web options
-		renderOpts := []renderweb.Option{
-		// renderweb.WithDefaultTemplateContext(DefaultTemplateContext),
+		if c.Bool("tracing-enable") {
+			DefaultWebOptions = append(DefaultWebOptions, renderweb.WithTracing())
 		}
 
 		// Turn routes into HTTP handler
-		api, err := constructHandler(c.StringSlice("routes"), renderOpts)
+		api, err := constructHandler(c.StringSlice("routes"), DefaultWebOptions)
 		if err != nil {
 			glog.Fatalf("[routes] %v", err)
 		}
@@ -130,7 +147,7 @@ var Web = cli.Command{
 		handler := &atomicHandler{
 			Context:  ctx,
 			Current:  xhandler.New(ctx, api),
-			Options:  renderOpts,
+			Options:  DefaultWebOptions,
 			Watching: c.Bool("watch"),
 			Routes:   c.StringSlice("routes"),
 			Mutex:    new(sync.RWMutex),
