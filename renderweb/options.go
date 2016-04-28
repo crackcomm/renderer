@@ -13,6 +13,7 @@ import (
 )
 
 type webOptions struct {
+	tracing    bool
 	alwaysHTML bool
 	reqTimeout time.Duration
 	defaultCtx template.Context
@@ -24,6 +25,29 @@ type webOptions struct {
 
 // Option - Sets web server handler options.
 type Option func(*webOptions)
+
+func constructOpts(opts ...Option) *webOptions {
+	o := &webOptions{
+		reqTimeout:      time.Second * 15,
+		componentSetter: UnmarshalFromRequest,
+	}
+	o.templateCtxSetter = defaultCtxSetter(o)
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
+}
+
+// WithTracing - Enables tracing. Uses first parameter if any.
+func WithTracing(enable ...bool) Option {
+	return func(o *webOptions) {
+		if len(enable) == 0 {
+			o.tracing = true
+		} else {
+			o.tracing = enable[0]
+		}
+	}
+}
 
 // WithComponentSetter - Sets component reader HTTP request middleware.
 func WithComponentSetter(componentSetter middlewares.Handler) Option {
@@ -46,7 +70,7 @@ func WithTimeout(t time.Duration) Option {
 	}
 }
 
-// WithAlwaysHTML - Responds with html only when enabled.
+// WithAlwaysHTML - Responds with html only when enabled. Uses first parameter if any.
 func WithAlwaysHTML(enable ...bool) Option {
 	return func(o *webOptions) {
 		if len(enable) == 0 {
