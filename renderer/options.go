@@ -1,4 +1,4 @@
-package renderweb
+package renderer
 
 import (
 	"net/http"
@@ -96,7 +96,7 @@ func WithMiddleware(m middlewares.Handler) Option {
 }
 
 func defaultCtxSetter(o *webOptions) middlewares.Handler {
-	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+	return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 		if _, ok := components.TemplateContext(ctx); !ok && o.defaultCtx != nil {
 			ctx = components.NewTemplateContext(ctx, o.defaultCtx.Clone())
 		}

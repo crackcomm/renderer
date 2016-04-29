@@ -1,9 +1,6 @@
-package renderweb
+package renderer
 
-import (
-	"github.com/rs/xhandler"
-	"golang.org/x/net/context"
-)
+import "github.com/rs/xhandler"
 
 // New - New renderer web server API handler.
 // Context should have a compiler set with `compiler.NewContext`.
@@ -34,19 +31,4 @@ func construct(o *webOptions) xhandler.HandlerC {
 		return chain.HandlerCF(WriteRenderedHTML)
 	}
 	return chain.HandlerCF(WriteRendered)
-}
-
-type breakCtxKey struct{}
-
-var breakKey = breakCtxKey{}
-
-// Break - Sets a break in context.
-func Break(ctx context.Context) context.Context {
-	return context.WithValue(ctx, breakKey, true)
-}
-
-// HasBreak - Returns true if break was set in given context.
-func HasBreak(ctx context.Context) bool {
-	b, _ := ctx.Value(breakKey).(bool)
-	return b
 }

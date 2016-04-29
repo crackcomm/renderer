@@ -1,4 +1,4 @@
-package renderweb
+package renderer
 
 import (
 	"fmt"
