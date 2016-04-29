@@ -1,21 +1,11 @@
 package middlewares
 
-import (
-	"fmt"
-
-	"github.com/rs/xhandler"
-)
+import "fmt"
 
 // Registry - Middlewares registry.
 type Registry struct {
 	middlewares map[string]*middleware
 }
-
-// Constructor - Middleware constructor.
-type Constructor func(Options) (Handler, error)
-
-// Handler - Middleware http handler.
-type Handler func(next xhandler.HandlerC) xhandler.HandlerC
 
 // New - Constructs new middlewares registry.
 func New() *Registry {
