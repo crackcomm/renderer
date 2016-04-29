@@ -1,4 +1,4 @@
-package renderweb
+package renderer
 
 import (
 	"encoding/json"
@@ -20,18 +20,9 @@ import (
 	"tower.pro/renderer/template"
 )
 
-// ToMiddleware - Converts function to middleware.
-func ToMiddleware(fn func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC)) middlewares.Handler {
-	return func(next xhandler.HandlerC) xhandler.HandlerC {
-		return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-			fn(ctx, w, r, next)
-		})
-	}
-}
-
 // ComponentMiddleware - Creates a middleware that sets given component in ctx.
 func ComponentMiddleware(c *components.Component) middlewares.Handler {
-	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+	return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 		if c != nil {
 			ctx = components.NewContext(ctx, c)
 		}
@@ -47,7 +38,7 @@ var UnmarshalFromRequest = NewUnmarshalFromRequest()
 // method and `` on `POST` method.
 func NewUnmarshalFromRequest() middlewares.Handler {
 	get, post := UnmarshalFromQuery("GET"), UnmarshalFromBody("POST")
-	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+	return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 		if r.Method == "GET" {
 			get(next).ServeHTTPC(ctx, w, r)
 		} else if r.Method == "POST" {
@@ -59,7 +50,7 @@ func NewUnmarshalFromRequest() middlewares.Handler {
 // UnmarshalFromQuery - Unmarshals component from `json` query on certain methods.
 // Stores result in context to be retrieved with `components.FromContext`.
 func UnmarshalFromQuery(methods ...string) middlewares.Handler {
-	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+	return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 		if len(methods) != 0 && !helpers.Contain(methods, r.Method) {
 			next.ServeHTTPC(ctx, w, r)
 			return
@@ -127,7 +118,7 @@ func queryStrings(query url.Values, name string) []string {
 // UnmarshalFromBody - Unmarshals component from request bodyCompileInContext() on certain methods.
 // Stores result in context to be retrieved with `components.FromContext`.
 func UnmarshalFromBody(methods ...string) middlewares.Handler {
-	return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+	return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 		if !helpers.Contain(methods, r.Method) {
 			next.ServeHTTPC(ctx, w, r)
 			return

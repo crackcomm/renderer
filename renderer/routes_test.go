@@ -1,4 +1,4 @@
-package renderweb
+package renderer
 
 import (
 	"bytes"
@@ -57,7 +57,7 @@ func TestRoutesUnmarshal(t *testing.T) {
 	middlewares.Register(middlewares.Descriptor{
 		Name: "my_test_middleware",
 	}, func(o middlewares.Options) (middlewares.Handler, error) {
-		return ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+		return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 			ctx = components.WithTemplateKey(ctx, "some1", "test1")
 			ctx = components.WithTemplateKey(ctx, "some2", "test2")
 			next.ServeHTTPC(ctx, w, r)

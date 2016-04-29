@@ -1,4 +1,4 @@
-package renderweb
+package renderer
 
 import (
 	"net/http"
@@ -44,7 +44,7 @@ func (h *Handler) Construct(opts ...Option) (xhandler.HandlerC, error) {
 	return New(opts...), nil
 }
 
-var initMiddleware = ToMiddleware(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+var initMiddleware = middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
 	ctx = NewRequestContext(ctx, r)
 	ctx = components.WithTemplateKey(ctx, "request", r)
 	ctx = components.WithTemplateKey(ctx, "params", xmux.Params(ctx))
