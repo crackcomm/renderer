@@ -13,7 +13,7 @@ import (
 	"github.com/rs/xhandler"
 
 	"tower.pro/renderer/compiler"
-	"tower.pro/renderer/renderweb"
+	"tower.pro/renderer/renderer"
 	"tower.pro/renderer/storage"
 	"tower.pro/renderer/watcher"
 
@@ -21,13 +21,13 @@ import (
 	_ "net/http/pprof"
 )
 
-// DefaultWebOptions - Default renderweb options.
-// You can append options here like renderweb.WithMiddleware.
-var DefaultWebOptions = []renderweb.Option{
+// DefaultWebOptions - Default renderer options.
+// You can append options here like renderer.WithMiddleware.
+var DefaultWebOptions = []renderer.Option{
 	// It means we won't spit out component JSON, just HTML
 	// in case of API routes like one using json.encode they
 	// will still work as expected with no difference
-	renderweb.WithAlwaysHTML(true),
+	renderer.WithAlwaysHTML(true),
 }
 
 // Commands - List of renderer commands.
@@ -37,8 +37,8 @@ var Commands = []cli.Command{
 
 // Web - Web command.
 var Web = cli.Command{
-	Name:  "web",
-	Usage: "starts renderer web API",
+	Name:  "server",
+	Usage: "renderer server",
 	Flags: []cli.Flag{
 		// Compiler options
 		cli.StringSliceFlag{
@@ -71,7 +71,7 @@ var Web = cli.Command{
 		// Web server options
 		cli.StringFlag{
 			Name:  "listen-addr",
-			Usage: "web interface listening address",
+			Usage: "renderer interface listening address",
 			Value: "127.0.0.1:6660",
 		},
 		cli.DurationFlag{
@@ -82,30 +82,28 @@ var Web = cli.Command{
 
 		// HTTP server flags
 		cli.DurationFlag{
-			Name:   "http-read-timeout",
-			EnvVar: "HTTP_READ_TIMEOUT",
-			Usage:  "http server read timeout",
+			Name:   "renderer-read-timeout",
+			EnvVar: "RENDERER_READ_TIMEOUT",
+			Usage:  "renderer server read timeout",
 			Value:  time.Minute,
 		},
 		cli.DurationFlag{
-			Name:   "http-write-timeout",
-			EnvVar: "HTTP_WRITE_TIMEOUT",
-			Usage:  "http server write timeout",
+			Name:   "renderer-write-timeout",
+			EnvVar: "RENDERER_WRITE_TIMEOUT",
+			Usage:  "renderer server write timeout",
 			Value:  time.Minute,
 		},
 
-		// Profiler
+		// Tracing and profiling
 		cli.StringFlag{
-			Name:   "pprof-addr",
-			EnvVar: "PPROF_ADDR",
-			Usage:  "pprof listening address",
+			Name:   "debug-addr",
+			EnvVar: "DEBUG_ADDR",
+			Usage:  "debug listening address",
 		},
-
-		// Tracing
 		cli.BoolFlag{
-			Name:   "tracing-enable",
-			EnvVar: "TRACING_ENABLE",
-			Usage:  "enable tracing",
+			Name:   "tracing",
+			EnvVar: "TRACING",
+			Usage:  "enable tracing (use with --debug-addr)",
 		},
 	},
 	Action: func(c *cli.Context) {
@@ -133,8 +131,8 @@ var Web = cli.Command{
 		// Create a context with compiler
 		ctx := compiler.NewContext(context.Background(), comp)
 
-		if c.Bool("tracing-enable") {
-			DefaultWebOptions = append(DefaultWebOptions, renderweb.WithTracing())
+		if c.Bool("tracing") {
+			DefaultWebOptions = append(DefaultWebOptions, renderer.WithTracing())
 		}
 
 		// Turn routes into HTTP handler
@@ -174,13 +172,8 @@ var Web = cli.Command{
 		}
 
 		// Start profiler if enabled
-		if pprofaddr := c.String("pprof-addr"); pprofaddr != "" {
-			go func() {
-				glog.Infof("[pprof] starting listener on %s", pprofaddr)
-				if err := http.ListenAndServe(pprofaddr, nil); err != nil {
-					glog.Fatal(err)
-				}
-			}()
+		if addr := c.String("pprof-addr"); addr != "" {
+			go debugServer(addr)
 		}
 
 		// Construct http server
@@ -192,9 +185,9 @@ var Web = cli.Command{
 			MaxHeaderBytes: 64 * 1024,
 		}
 
-		glog.Infof("[server] starting listener on %s", c.String("listen-addr"))
+		glog.Infof("[renderer] starting server on %s", c.String("listen-addr"))
 		if err = server.ListenAndServe(); err != nil {
-			glog.Fatalf("[server] %v", err)
+			glog.Fatalf("[renderer] %v", err)
 		}
 	},
 }
@@ -202,7 +195,7 @@ var Web = cli.Command{
 type atomicHandler struct {
 	Context context.Context
 	Current http.Handler
-	Options []renderweb.Option
+	Options []renderer.Option
 
 	Mutex    *sync.RWMutex
 	Watching bool
@@ -247,9 +240,9 @@ func (handler *atomicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	h.ServeHTTP(w, r)
 }
 
-func constructHandler(filenames []string, options []renderweb.Option) (_ xhandler.HandlerC, err error) {
+func constructHandler(filenames []string, options []renderer.Option) (_ xhandler.HandlerC, err error) {
 	if len(filenames) == 0 {
-		return renderweb.New(), nil
+		return renderer.New(), nil
 	}
 
 	routes, err := constructRoutes(filenames, options)
@@ -262,11 +255,11 @@ func constructHandler(filenames []string, options []renderweb.Option) (_ xhandle
 }
 
 // constructRoutes - Constructs routes map from multiple filenames.
-func constructRoutes(filenames []string, options []renderweb.Option) (res renderweb.Routes, err error) {
-	res = make(renderweb.Routes)
+func constructRoutes(filenames []string, options []renderer.Option) (res renderer.Routes, err error) {
+	res = make(renderer.Routes)
 	for _, filename := range filenames {
-		var routes renderweb.Routes
-		routes, err = renderweb.RoutesFromFile(filename)
+		var routes renderer.Routes
+		routes, err = renderer.RoutesFromFile(filename)
 		if err != nil {
 			return
 		}
@@ -278,4 +271,11 @@ func constructRoutes(filenames []string, options []renderweb.Option) (res render
 		}
 	}
 	return
+}
+
+func debugServer(addr string) {
+	glog.Infof("[debug] starting server on %s", addr)
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		glog.Fatal(err)
+	}
 }
