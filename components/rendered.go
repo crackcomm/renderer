@@ -20,21 +20,14 @@ type Rendered struct {
 }
 
 // HTML - Merges styles and scripts into HTML body.
-func (r *Rendered) HTML() string {
+func (r *Rendered) HTML() (html string) {
 	// Return if no styles or scripts to add.
 	if len(r.Styles) == 0 && len(r.Scripts) == 0 {
 		return r.Body
 	}
-
-	var extras []string
-	for _, src := range r.Styles {
-		extras = append(extras, renderStyle(src))
-	}
-	for _, src := range r.Scripts {
-		extras = append(extras, renderScript(src))
-	}
-
-	return insertExtras(r.Body, extras)
+	html = insertExtras(r.Body, renderList(renderStyle, r.Styles))
+	html, _ = insertBefore(html, "</html>", renderList(renderScript, r.Scripts))
+	return
 }
 
 func insertExtras(html string, extras []string) (res string) {
@@ -71,6 +64,13 @@ func insertBefore(input, before string, extras []string) (_ string, ok bool) {
 	}
 	extra := strings.Join(extras, "")
 	return strings.Join([]string{input[:index], extra, input[index:]}, ""), true
+}
+
+func renderList(fnc func(string) string, list []string) (res []string) {
+	for _, src := range list {
+		res = append(res, fnc(src))
+	}
+	return
 }
 
 func renderStyle(src string) string {
