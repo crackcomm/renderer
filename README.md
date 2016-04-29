@@ -2,10 +2,6 @@
 
 [![GoDoc](https://godoc.org/tower.pro/renderer?status.svg)](https://godoc.org/tower.pro/renderer)
 
-## Usage
-
-Documentation for this software is not planned.
-
 ### Installation
 
 ```sh
@@ -17,9 +13,9 @@ $ go get -u tower.pro/renderer
 Start API server:
 
 ```sh
-$ renderer web -watch -components ./examples/
+$ renderer server -watch -components ./examples/
 $ # With routes
-$ renderer web -watch -components ./examples/ -routes ./examples/routes.yaml
+$ renderer server -watch -components ./examples/ -routes ./examples/routes.yaml
 ```
 
 Render using API:
