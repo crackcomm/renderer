@@ -17,9 +17,9 @@ $ go get -u tower.pro/renderer
 Start API server:
 
 ```sh
-$ renderer web -watch -components ./examples/
+$ renderer server -watch -components ./examples/
 $ # With routes
-$ renderer web -watch -components ./examples/ -routes ./examples/routes.yaml
+$ renderer server -watch -components ./examples/ -routes ./examples/routes.yaml
 ```
 
 Render using API:
