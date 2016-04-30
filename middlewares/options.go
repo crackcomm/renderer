@@ -252,13 +252,23 @@ func valueBool(value interface{}) (_ bool, _ bool, _ error) {
 		if t == "" {
 			return
 		}
-		v, err := strconv.ParseBool(t)
+		v, err := parseBool(t)
 		if err != nil {
 			return false, false, err
 		}
 		return v, true, nil
 	}
 	return
+}
+
+func parseBool(str string) (v bool, err error) {
+	switch str {
+	case "ok", "on", "true", "yes", "1":
+		return true, nil
+	case "no", "off", "false", "0":
+		return false, nil
+	}
+	return strconv.ParseBool(str)
 }
 
 type contextMap struct {
