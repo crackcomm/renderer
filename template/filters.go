@@ -12,7 +12,7 @@ import (
 func init() {
 	pongo2.RegisterFilter("json", jsonFilter)
 	pongo2.RegisterFilter("json_pretty", jsonPrettyFilter)
-	pongo2.RegisterFilter("humanize", filterHumanize)
+	pongo2.RegisterFilter("humanize_time", filterHumanizeTime)
 	pongo2.RegisterFilter("before_now", filterBeforeNow)
 	pongo2.RegisterFilter("after_now", filterAfterNow)
 	pongo2.RegisterFilter("bool", filterBool)
@@ -56,11 +56,11 @@ func filterAfterNow(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pong
 	return pongo2.AsValue(time.Now().Before(t)), nil
 }
 
-func filterHumanize(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
+func filterHumanizeTime(in *pongo2.Value, param *pongo2.Value) (*pongo2.Value, *pongo2.Error) {
 	t, isTime := in.Interface().(time.Time)
 	if !isTime {
 		return nil, &pongo2.Error{
-			Sender:   "filter:humanize",
+			Sender:   "filter:humanize_time",
 			ErrorMsg: "Filter input argument must be of type: 'time.Time'.",
 		}
 	}
