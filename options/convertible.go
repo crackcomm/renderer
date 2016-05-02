@@ -58,4 +58,10 @@ var Convertible = map[Type][]Type{
 		TypeMap,
 		TypeList,
 	},
+	TypeList: []Type{
+		TypeStringList,
+	},
+	TypeStringList: []Type{
+		TypeList,
+	},
 }

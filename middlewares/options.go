@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -32,6 +33,9 @@ type Options interface {
 
 	// List - Gets option list value.
 	List(context.Context, *options.Option) ([]interface{}, error)
+
+	// StringList - Gets option strings list value.
+	StringList(context.Context, *options.Option) ([]string, error)
 }
 
 type middlewareOpts struct {
@@ -133,15 +137,23 @@ func (opts *middlewareOpts) Map(ctx context.Context, desc *options.Option) (res 
 		}
 		if value, ok := helpers.CleanMapDeep(v); ok {
 			res = setDefaults(res, value)
+		} else {
+			return nil, fmt.Errorf("invalid template value for option %q: %#v", desc.Name, v)
 		}
 	}
 	if node, ok := opts.context[desc.Name]; ok {
-		if value, ok := node.Value(ctx).(map[string]interface{}); ok {
+		opt := node.Value(ctx)
+		if value, ok := opt.(map[string]interface{}); ok {
 			res = setDefaults(res, value)
+		} else if opt != nil {
+			return nil, fmt.Errorf("invalid context value for option %q: %#v", desc.Name, opt)
 		}
 	}
-	if options, ok := opts.options[desc.Name].(map[string]interface{}); ok {
+	opt := opts.options[desc.Name]
+	if options, ok := opt.(map[string]interface{}); ok {
 		res = setDefaults(res, options)
+	} else if opt != nil {
+		return nil, fmt.Errorf("invalid option value for option %q: %#v", desc.Name, opt)
 	}
 	res = setDefaults(res, desc.Default)
 	return
@@ -169,6 +181,20 @@ func (opts *middlewareOpts) List(ctx context.Context, desc *options.Option) (res
 	}
 	if defaults, ok := desc.Default.([]interface{}); ok {
 		res = append(res, defaults...)
+	}
+	return
+}
+
+// StringList - Gets option string list value.
+func (opts *middlewareOpts) StringList(ctx context.Context, desc *options.Option) (res []string, err error) {
+	list, err := opts.List(ctx, desc)
+	if err != nil {
+		return
+	}
+	for _, value := range list {
+		if str, ok := value.(string); ok && str != "" {
+			res = append(res, str)
+		}
 	}
 	return
 }

@@ -36,6 +36,9 @@ const (
 	// TypeList - Option of type List.
 	TypeList Type = "list"
 
+	// TypeStringList - Option of type String List.
+	TypeStringList Type = "stringlist"
+
 	// TypeTemplate - Template option value type.
 	TypeTemplate Type = "template"
 
@@ -81,7 +84,7 @@ func ValueType(v interface{}) Type {
 	case map[interface{}]interface{}:
 		return TypeMap
 	case []string:
-		return TypeList
+		return TypeStringList
 	case []interface{}:
 		return TypeList
 	case time.Duration:

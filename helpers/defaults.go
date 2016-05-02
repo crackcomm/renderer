@@ -57,7 +57,26 @@ func mergeDefaults(dest, extra interface{}) interface{} {
 		}
 	case []interface{}:
 		switch e := extra.(type) {
+		case []string:
+			for _, value := range e {
+				d = append(d, value)
+			}
+			return d
 		case []interface{}:
+			return append(d, e...)
+		default:
+			return d
+		}
+	case []string:
+		switch e := extra.(type) {
+		case []interface{}:
+			for _, value := range e {
+				if v, ok := value.(string); ok {
+					d = append(d, v)
+				}
+			}
+			return d
+		case []string:
 			return append(d, e...)
 		default:
 			return d
