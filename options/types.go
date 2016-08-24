@@ -1,6 +1,10 @@
 package options
 
-import "time"
+import (
+	"time"
+
+	"tower.pro/renderer/template"
+)
 
 // Type - Option type identifier.
 type Type string
@@ -79,9 +83,7 @@ func ValueType(v interface{}) Type {
 		return TypeInt64
 	case map[string]string:
 		return TypeMap
-	case map[string]interface{}:
-		return TypeMap
-	case map[interface{}]interface{}:
+	case template.Context: //, map[string]interface{}, map[interface{}]interface{}:
 		return TypeMap
 	case []string:
 		return TypeStringList

@@ -1,5 +1,7 @@
 package options
 
+import "tower.pro/renderer/template"
+
 // Option - Option descriptor.
 type Option struct {
 	ID      string        `json:"id,omitempty"`
@@ -34,6 +36,8 @@ func IsEmpty(v interface{}) bool {
 	case []interface{}:
 		return len(t) == 0
 	case map[string]interface{}:
+		return len(t) == 0
+	case template.Context:
 		return len(t) == 0
 	}
 	return false

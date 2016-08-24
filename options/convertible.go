@@ -11,20 +11,20 @@ func IsConvertible(from Type, to Type) bool {
 
 // Convertible - List of types every type can convert to.
 var Convertible = map[Type][]Type{
-	TypeInt: []Type{
+	TypeInt: {
 		TypeInt64,
 		TypeFloat,
 	},
-	TypeInt64: []Type{
+	TypeInt64: {
 		TypeInt,
 		TypeFloat,
 	},
-	TypeFloat: []Type{
+	TypeFloat: {
 		TypeInt,
 		TypeFloat,
 		TypeInt64,
 	},
-	TypeString: []Type{
+	TypeString: {
 		TypeInt,
 		TypeInt64,
 		TypeFloat,
@@ -34,7 +34,7 @@ var Convertible = map[Type][]Type{
 		TypeDestination,
 		TypeTemplate,
 	},
-	TypeTemplate: []Type{
+	TypeTemplate: {
 		TypeString,
 		TypeInt,
 		TypeInt64,
@@ -46,7 +46,7 @@ var Convertible = map[Type][]Type{
 		TypeMap,
 		TypeList,
 	},
-	TypeKey: []Type{
+	TypeKey: {
 		TypeKey,
 		TypeBool,
 		TypeString,
@@ -58,10 +58,10 @@ var Convertible = map[Type][]Type{
 		TypeMap,
 		TypeList,
 	},
-	TypeList: []Type{
+	TypeList: {
 		TypeStringList,
 	},
-	TypeStringList: []Type{
+	TypeStringList: {
 		TypeList,
 	},
 }

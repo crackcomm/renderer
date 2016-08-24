@@ -82,6 +82,7 @@ func WithAlwaysHTML(enable ...bool) Option {
 }
 
 // WithDefaultTemplateContext - Sets default template context.
+// Template context is cloned on every request because it's used as a base.
 func WithDefaultTemplateContext(ctx template.Context) Option {
 	return func(o *webOptions) {
 		o.defaultCtx = ctx
@@ -97,9 +98,7 @@ func WithMiddleware(m middlewares.Handler) Option {
 
 func defaultCtxSetter(o *webOptions) middlewares.Handler {
 	return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
-		if _, ok := components.TemplateContext(ctx); !ok && o.defaultCtx != nil {
-			ctx = components.NewTemplateContext(ctx, o.defaultCtx.Clone())
-		}
+		ctx = components.NewTemplateContext(ctx, o.defaultCtx.Clone())
 		next.ServeHTTPC(ctx, w, r)
 	})
 }

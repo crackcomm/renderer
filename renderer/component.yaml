@@ -1,0 +1,12 @@
+
+extends: products.form
+
+context:
+  title: Create a Product
+  breadcrumbs:
+    links:
+    - href: /
+      title: Home
+    - href: /products/list
+      title: Products
+    - title: Create

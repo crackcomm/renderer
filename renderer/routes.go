@@ -53,6 +53,15 @@ func (routes Routes) Construct(options ...Option) (xhandler.HandlerC, error) {
 	return mux, nil
 }
 
+// ToStringMap - To map with string routes.
+func (routes Routes) ToStringMap() (res map[string]*Handler) {
+	res = make(map[string]*Handler)
+	for k, v := range routes {
+		res[k.String()] = v
+	}
+	return
+}
+
 func routeTracing(route Route, handler xhandler.HandlerC) xhandler.HandlerC {
 	rs := route.String()
 	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {

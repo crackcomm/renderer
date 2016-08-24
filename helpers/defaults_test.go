@@ -1,33 +1,42 @@
 package helpers
 
-import "testing"
+import (
+	"testing"
+
+	"tower.pro/renderer/template"
+)
 
 func TestWithDefaults(t *testing.T) {
 	from := map[string]interface{}{
 		"first": map[string]interface{}{
-			"test": map[string]string{
-				"key": "value",
+			"deep": map[string]interface{}{
+				"test": map[string]string{
+					"key": "value",
+				},
 			},
 		},
 	}
 	fromDefaults := map[string]interface{}{
 		"first": map[string]interface{}{
-			"test": map[string]interface{}{
-				"key2": "value2",
+			"deep": map[string]interface{}{
+				"test": map[string]string{
+					"key2": "value2",
+				},
 			},
 		},
 	}
 
-	res := WithDefaults(from, fromDefaults).(map[string]interface{})
+	res := WithDefaults(from, fromDefaults).(template.Context)
 
-	first := res["first"].(map[string]interface{})
-	test := first["test"].(map[string]string)
+	first := res["first"].(template.Context)
+	deep := first["deep"].(template.Context)
+	test := deep["test"].(map[string]string)
 
 	if len(test) != 2 {
 		t.Errorf("Invalid length: %d\n", len(test))
 	}
 
-	e := map[string]interface{}{
+	e := template.Context{
 		"key":  "value",
 		"key2": "value2",
 	}

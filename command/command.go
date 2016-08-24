@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -106,11 +107,11 @@ var Web = cli.Command{
 			Usage:  "enable tracing (use with --debug-addr)",
 		},
 	},
-	Action: func(c *cli.Context) {
+	Action: func(c *cli.Context) (err error) {
 		// Get components directory from --components flag
 		// Print fatal error if not set
 		if c.String("components") == "" {
-			glog.Fatal("--components flag cannot be empty")
+			return errors.New("--components flag cannot be empty")
 		}
 
 		// Create a new storage in directory from --components flag
@@ -121,7 +122,7 @@ var Web = cli.Command{
 			storage.WithWhitespaceRemoval(c.Bool("compress")),
 		)
 		if err != nil {
-			glog.Fatalf("[storage] %v", err)
+			return fmt.Errorf("[storage] %v", err)
 		}
 		defer storage.Close()
 
@@ -138,7 +139,7 @@ var Web = cli.Command{
 		// Turn routes into HTTP handler
 		api, err := constructHandler(c.StringSlice("routes"), DefaultWebOptions)
 		if err != nil {
-			glog.Fatalf("[routes] %v", err)
+			return fmt.Errorf("[routes] %v", err)
 		}
 
 		// Construct API handler
@@ -156,7 +157,7 @@ var Web = cli.Command{
 			var w *watcher.Watcher
 			w, err = watcher.Start(c.String("components"), storage)
 			if err != nil {
-				glog.Fatal(err)
+				return
 			}
 			defer w.Stop()
 
@@ -165,7 +166,7 @@ var Web = cli.Command{
 				var watch *watcher.Watcher
 				watch, err = watcher.Start(filename, handler)
 				if err != nil {
-					glog.Fatal(err)
+					return
 				}
 				defer watch.Stop()
 			}
@@ -173,7 +174,11 @@ var Web = cli.Command{
 
 		// Start profiler if enabled
 		if addr := c.String("pprof-addr"); addr != "" {
-			go debugServer(addr)
+			go func() {
+				if err = debugServer(addr); err != nil {
+					glog.Fatal(err)
+				}
+			}()
 		}
 
 		// Construct http server
@@ -186,9 +191,7 @@ var Web = cli.Command{
 		}
 
 		glog.Infof("[renderer] starting server on %s", c.String("listen-addr"))
-		if err = server.ListenAndServe(); err != nil {
-			glog.Fatalf("[renderer] %v", err)
-		}
+		return server.ListenAndServe()
 	},
 }
 
@@ -273,9 +276,7 @@ func constructRoutes(filenames []string, options []renderer.Option) (res rendere
 	return
 }
 
-func debugServer(addr string) {
+func debugServer(addr string) (err error) {
 	glog.Infof("[debug] starting server on %s", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		glog.Fatal(err)
-	}
+	return http.ListenAndServe(addr, nil)
 }

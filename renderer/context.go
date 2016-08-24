@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/rs/xmux"
@@ -106,7 +107,23 @@ func (ctx *requestContext) getFromForm(rest ...string) interface{} {
 	if err := ctx.Request.ParseForm(); err != nil {
 		return nil
 	}
-	return ctx.Request.Form.Get(strings.Join(rest, "."))
+	key := strings.Join(rest, ".")
+	if split := strings.Split(key, ":"); len(split) == 2 {
+		return formatValue(split[1], ctx.Request.Form.Get(split[0]))
+	}
+	return ctx.Request.Form.Get(key)
+}
+
+func formatValue(t string, v string) interface{} {
+	switch t {
+	case "int":
+		v, _ := strconv.Atoi(v)
+		return v
+	case "bool":
+		v, _ := strconv.ParseBool(v)
+		return v
+	}
+	return v
 }
 
 func (ctx *requestContext) getFromHeader(rest ...string) interface{} {

@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"reflect"
 	"testing"
@@ -38,32 +39,22 @@ var expected = Routes{
 			Name: "dashboard.components",
 			Context: template.Context{
 				"components": []interface{}{
-					map[interface{}]interface{}{"name": "test1"},
-					map[interface{}]interface{}{"name": "test2"},
-					map[interface{}]interface{}{"name": "test3"},
+					template.Context{"name": "test1"},
+					template.Context{"name": "test2"},
+					template.Context{"name": "test3"},
 				},
 			},
 		},
 		Middlewares: []*middlewares.Middleware{
 			{
 				Name:    "my_test_middleware",
-				Options: options.Options{"opts1": "test_value"},
+				Options: template.Context{"opts1": "test_value"},
 			},
 		},
 	},
 }
 
 func TestRoutesUnmarshal(t *testing.T) {
-	middlewares.Register(middlewares.Descriptor{
-		Name: "my_test_middleware",
-	}, func(o middlewares.Options) (middlewares.Handler, error) {
-		return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
-			ctx = components.WithTemplateKey(ctx, "some1", "test1")
-			ctx = components.WithTemplateKey(ctx, "some2", "test2")
-			next.ServeHTTPC(ctx, w, r)
-		}), nil
-	})
-
 	m := make(routesFile)
 	err := yaml.Unmarshal([]byte(data), &m)
 	if err != nil {
@@ -76,7 +67,15 @@ func TestRoutesUnmarshal(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(r, expected) {
-		t.Errorf("Got: \n%#v\n Expected: \n%#v\n", r, expected)
+		gotbody, e := json.MarshalIndent(r.ToStringMap(), "", "  ")
+		if e != nil {
+			t.Fatal(e)
+		}
+		expbody, e := json.MarshalIndent(expected.ToStringMap(), "", "  ")
+		if e != nil {
+			t.Fatal(e)
+		}
+		t.Errorf("Got: \n%s\n Expected: \n%s\n", gotbody, expbody)
 	}
 
 	t.Logf("Got: %#v", r)
@@ -102,4 +101,19 @@ func TestRoutesYamlMarshal(t *testing.T) {
 	if !bytes.Equal(bytes.TrimSpace(d), bytes.TrimSpace([]byte(data))) {
 		t.Errorf("Got: \n%s\n", d)
 	}
+}
+
+func init() {
+	middlewares.Register(middlewares.Descriptor{
+		Name: "my_test_middleware",
+		Options: []*options.Option{
+			{Name: "opts1", Type: options.TypeString},
+		},
+	}, func(o middlewares.Options) (middlewares.Handler, error) {
+		return middlewares.ToHandler(func(ctx context.Context, w http.ResponseWriter, r *http.Request, next xhandler.HandlerC) {
+			ctx = components.WithTemplateKey(ctx, "some1", "test1")
+			ctx = components.WithTemplateKey(ctx, "some2", "test2")
+			next.ServeHTTPC(ctx, w, r)
+		}), nil
+	})
 }

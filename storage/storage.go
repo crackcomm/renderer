@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -49,7 +50,7 @@ type storageCache struct {
 // Text - Returns file content as Template interface.
 func (s *Storage) Text(path string) (t template.Template, err error) {
 	path = filepath.Join(s.opts.dirname, path)
-	body, err := s.read(path)
+	body, err := s.read(path, true)
 	if err != nil {
 		return
 	}
@@ -63,7 +64,7 @@ func (s *Storage) Template(path string) (t template.Template, err error) {
 	if tmp, ok := s.cache.templates.Get(path); ok {
 		return tmp.(template.Template), nil
 	}
-	body, err := s.read(path)
+	body, err := s.read(path, true)
 	if err != nil {
 		return
 	}
@@ -77,12 +78,20 @@ func (s *Storage) Template(path string) (t template.Template, err error) {
 
 // Component - Returns component by name.
 func (s *Storage) Component(name string) (c *components.Component, err error) {
+	c, err = s.component(name)
+	if err != nil {
+		return nil, fmt.Errorf("component %q: %v", name, err)
+	}
+	return
+}
+
+func (s *Storage) component(name string) (c *components.Component, err error) {
 	path := strings.Replace(name, ".", string(os.PathSeparator), -1)
 	path = filepath.Join(s.opts.dirname, path, "component.yaml")
 	if tmp, ok := s.cache.components.Get(path); ok {
 		return tmp.(*components.Component), nil
 	}
-	body, err := s.read(path)
+	body, err := s.read(path, false)
 	if err != nil {
 		return
 	}
@@ -105,7 +114,7 @@ func (s *Storage) Close() (err error) {
 }
 
 // read - reads file content or returns cached byte array
-func (s *Storage) read(path string) (body []byte, err error) {
+func (s *Storage) read(path string, removeWhitespace bool) (body []byte, err error) {
 	if b, ok := s.cache.files.Get(path); ok {
 		return b.([]byte), nil
 	}
@@ -113,7 +122,7 @@ func (s *Storage) read(path string) (body []byte, err error) {
 	if err != nil {
 		return
 	}
-	if s.opts.removeWhitespace {
+	if removeWhitespace && s.opts.removeWhitespace {
 		body = CleanWhitespaces(body)
 	}
 	s.cache.files.Set(path, body, cache.DefaultExpiration)

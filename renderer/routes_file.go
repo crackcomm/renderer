@@ -7,9 +7,9 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"tower.pro/renderer/components"
 	"tower.pro/renderer/helpers"
 	"tower.pro/renderer/middlewares"
-	"tower.pro/renderer/options"
 )
 
 // RoutesFromFile - Reads routes from yaml file.
@@ -30,13 +30,17 @@ type routesFile map[string]*Handler
 
 func (file routesFile) toRoutes() (routes Routes, err error) {
 	routes = make(Routes)
-	for r, v := range file {
+	for r, h := range file {
 		var route Route
 		route, err = parseRoute(r)
 		if err != nil {
 			return
 		}
-		for _, m := range v.Middlewares {
+
+		if err = cleanComponent(h.Component); err != nil {
+			return
+		}
+		for _, m := range h.Middlewares {
 			if !middlewares.Exists(m.Name) {
 				err = fmt.Errorf("middleware %q doesn't exist", m.Name)
 				return
@@ -45,38 +49,34 @@ func (file routesFile) toRoutes() (routes Routes, err error) {
 				return nil, fmt.Errorf("route %q: %v", r, err)
 			}
 		}
-		routes[route] = v
+		routes[route] = h
 	}
 	return
 }
 
-func cleanMiddleware(m *middlewares.Middleware) error {
-	// Clean middleware options
-	// because yaml gives us ugly maps map[interface{}]interface{}
-	// which is not we want in 99.99% of cases and this makes me
-	// write tons of unnecessary code to handle conversions
-	// lets convert it always here, JSON doesn't have this problem
-	v, ok := helpers.CleanMapDeep(map[string]interface{}(m.Options))
-	if !ok {
-		return fmt.Errorf("middleware %q invalid options", m.Name)
+func cleanComponent(c *components.Component) (err error) {
+	if c == nil {
+		return
 	}
-
-	m.Options = options.Options(v.(map[string]interface{}))
-
-	// Clean templates map
-	v, ok = helpers.CleanMapDeep(map[string]interface{}(m.Template))
-	if !ok {
-		return fmt.Errorf("middleware %q invalid templates", m.Name)
+	c.Context, err = helpers.CleanDeepMap(c.Context)
+	if err != nil {
+		return
 	}
-	m.Template = options.Options(v.(map[string]interface{}))
+	c.With, err = helpers.CleanDeepMap(c.With)
+	return
+}
 
-	// Clean context map
-	v, ok = helpers.CleanMapDeep(map[string]interface{}(m.Context))
-	if !ok {
-		return fmt.Errorf("middleware %q invalid context", m.Name)
+func cleanMiddleware(m *middlewares.Middleware) (err error) {
+	m.Options, err = helpers.CleanDeepMap(m.Options)
+	if err != nil {
+		return
 	}
-	m.Context = options.Options(v.(map[string]interface{}))
-	return nil
+	m.Template, err = helpers.CleanDeepMap(m.Template)
+	if err != nil {
+		return
+	}
+	m.Context, err = helpers.CleanDeepMap(m.Context)
+	return
 }
 
 func parseRoute(str string) (r Route, err error) {

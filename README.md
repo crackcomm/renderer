@@ -71,7 +71,7 @@ Additionaly this component extends `movies.root` so after this component will be
   "name": "movies.movie",
   "main": "file://component.html",
   "extends": "movies.root",
-  "requires": {
+  "require": {
     "video_component": {
       "name": "movies.video",
       "with": {

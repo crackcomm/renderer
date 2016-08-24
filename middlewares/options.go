@@ -29,7 +29,7 @@ type Options interface {
 	Duration(context.Context, *options.Option) (time.Duration, error)
 
 	// Map - Gets option map value.
-	Map(context.Context, *options.Option) (map[string]interface{}, error)
+	Map(context.Context, *options.Option) (template.Context, error)
 
 	// List - Gets option list value.
 	List(context.Context, *options.Option) ([]interface{}, error)
@@ -39,7 +39,7 @@ type Options interface {
 }
 
 type middlewareOpts struct {
-	options  options.Options
+	options  template.Context
 	context  map[string]contextNode
 	template template.Map
 }
@@ -60,72 +60,97 @@ func constructOptions(md *Middleware) (opts *middlewareOpts, err error) {
 }
 
 // Duration - Gets option int value.
-func (opts *middlewareOpts) Duration(ctx context.Context, desc *options.Option) (time.Duration, error) {
+func (opts *middlewareOpts) Duration(ctx context.Context, desc *options.Option) (v time.Duration, err error) {
 	value, err := opts.getValue(ctx, desc)
 	if err != nil {
-		return 0, err
+		return
 	}
 	v, ok, err := valueDuration(value)
 	if err != nil {
-		return 0, err
+		return
 	}
 	if ok {
-		return v, nil
+		return
 	}
-	v, _ = desc.Default.(time.Duration)
-	return v, nil
+	v, ok = desc.Default.(time.Duration)
+	if ok {
+		return
+	}
+	if desc.Always {
+		err = fmt.Errorf("option %q value cannot be empty", desc.Name)
+	}
+	return
 }
 
 // Int - Gets option int value.
-func (opts *middlewareOpts) Int(ctx context.Context, desc *options.Option) (int, error) {
+func (opts *middlewareOpts) Int(ctx context.Context, desc *options.Option) (v int, err error) {
 	value, err := opts.getValue(ctx, desc)
 	if err != nil {
-		return 0, err
+		return
 	}
 	v, ok, err := valueInt(value)
 	if err != nil {
-		return 0, err
+		return
 	}
 	if ok {
-		return v, nil
+		return
 	}
-	v, _ = desc.Default.(int)
-	return v, nil
+	v, ok = desc.Default.(int)
+	if ok {
+		return
+	}
+	if desc.Always {
+		err = fmt.Errorf("option %q value cannot be empty", desc.Name)
+	}
+	return
 }
 
 // Bool - Gets option bool value.
-func (opts *middlewareOpts) Bool(ctx context.Context, desc *options.Option) (bool, error) {
+func (opts *middlewareOpts) Bool(ctx context.Context, desc *options.Option) (v bool, err error) {
 	value, err := opts.getValue(ctx, desc)
 	if err != nil {
-		return false, err
+		return
 	}
 	v, ok, err := valueBool(value)
 	if err != nil {
-		return false, err
+		return
 	}
 	if ok {
-		return v, nil
+		return
 	}
-	v, _ = desc.Default.(bool)
-	return v, nil
+	if v, ok = desc.Default.(bool); ok {
+		return
+	}
+	if desc.Always {
+		err = fmt.Errorf("option %q value cannot be empty", desc.Name)
+	}
+	return
 }
 
 // String - Gets option string value.
-func (opts *middlewareOpts) String(ctx context.Context, desc *options.Option) (string, error) {
+func (opts *middlewareOpts) String(ctx context.Context, desc *options.Option) (v string, err error) {
 	value, err := opts.getValue(ctx, desc)
 	if err != nil {
-		return "", err
+		return
 	}
-	if v, ok := value.(string); ok {
-		return v, nil
+	var ok bool
+	v, ok = value.(string)
+	if ok && v != "" {
+		return
 	}
-	v, _ := desc.Default.(string)
-	return v, nil
+	v, ok = desc.Default.(string)
+	if ok && v != "" {
+		return
+	}
+	if desc.Always {
+		err = fmt.Errorf("option %q value cannot be empty", desc.Name)
+	}
+	return
 }
 
 // Map - Gets option map value.
-func (opts *middlewareOpts) Map(ctx context.Context, desc *options.Option) (res map[string]interface{}, err error) {
-	res = make(map[string]interface{})
+func (opts *middlewareOpts) Map(ctx context.Context, desc *options.Option) (res template.Context, err error) {
+	res = make(template.Context)
 	if temp, ok := opts.template[desc.Name]; ok {
 		tempctx, ok := components.TemplateContext(ctx)
 		if !ok {
@@ -135,27 +160,23 @@ func (opts *middlewareOpts) Map(ctx context.Context, desc *options.Option) (res 
 		if err != nil {
 			return nil, err
 		}
-		if value, ok := helpers.CleanMapDeep(v); ok {
-			res = setDefaults(res, value)
-		} else {
-			return nil, fmt.Errorf("invalid template value for option %q: %#v", desc.Name, v)
-		}
+		res = helpers.WithDefaultsMap(res, v)
 	}
 	if node, ok := opts.context[desc.Name]; ok {
 		opt := node.Value(ctx)
-		if value, ok := opt.(map[string]interface{}); ok {
-			res = setDefaults(res, value)
+		if value, ok := opt.(template.Context); ok {
+			res = helpers.WithDefaultsMap(res, value)
 		} else if opt != nil {
 			return nil, fmt.Errorf("invalid context value for option %q: %#v", desc.Name, opt)
 		}
 	}
 	opt := opts.options[desc.Name]
-	if options, ok := opt.(map[string]interface{}); ok {
-		res = setDefaults(res, options)
+	if options, ok := opt.(template.Context); ok {
+		res = helpers.WithDefaultsMap(res, options)
 	} else if opt != nil {
 		return nil, fmt.Errorf("invalid option value for option %q: %#v", desc.Name, opt)
 	}
-	res = setDefaults(res, desc.Default)
+	res = helpers.WithDefaultsMap(res, desc.Default)
 	return
 }
 
@@ -199,10 +220,6 @@ func (opts *middlewareOpts) StringList(ctx context.Context, desc *options.Option
 	return
 }
 
-func setDefaults(target map[string]interface{}, defaults interface{}) map[string]interface{} {
-	return helpers.WithDefaults(target, defaults).(map[string]interface{})
-}
-
 func (opts *middlewareOpts) getValue(ctx context.Context, desc *options.Option) (_ interface{}, _ error) {
 	node, ok := opts.context[desc.Name]
 	if ok {
@@ -217,7 +234,7 @@ func (opts *middlewareOpts) getValue(ctx context.Context, desc *options.Option) 
 		if err != nil {
 			return nil, err
 		}
-		v, _ := helpers.CleanMapDeep(res)
+		v, _ := helpers.CleanDeep(res)
 		return v, nil
 	}
 	if v, ok := opts.options[desc.Name]; ok {
@@ -313,7 +330,7 @@ type contextNode interface {
 	Value(context.Context) interface{}
 }
 
-func newContextMap(ctx map[string]interface{}) (res *contextMap) {
+func newContextMap(ctx template.Context) (res *contextMap) {
 	res = &contextMap{context: make(map[string]contextNode)}
 	for key, value := range ctx {
 		res.context[key] = newContextNode(value)
@@ -325,12 +342,10 @@ func newContextNode(v interface{}) (res contextNode) {
 	switch t := v.(type) {
 	case string:
 		return &contextKey{key: t}
-	case map[string]interface{}:
-		return newContextMap(t)
-	case options.Options:
-		return newContextMap(map[string]interface{}(t))
 	case template.Context:
-		return newContextMap(map[string]interface{}(t))
+		return newContextMap(t)
+	case map[string]interface{}:
+		return newContextMap(template.Context(t))
 	}
 	return &contextValue{value: v}
 }
@@ -339,11 +354,11 @@ func (m contextMap) Value(ctx context.Context) interface{} {
 	return m.Map(ctx)
 }
 
-func (m contextMap) Map(ctx context.Context) (res map[string]interface{}) {
+func (m contextMap) Map(ctx context.Context) (res template.Context) {
 	if len(m.context) == 0 {
 		return
 	}
-	res = make(map[string]interface{})
+	res = make(template.Context)
 	for k, v := range m.context {
 		res[k] = v.Value(ctx)
 	}

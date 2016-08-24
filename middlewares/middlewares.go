@@ -58,7 +58,7 @@ func (registry *Registry) Construct(m *Middleware) (Handler, error) {
 		m.SetDefaults(md.Defaults)
 	}
 	if err := m.Validate(md.Descriptor.Options); err != nil {
-		return nil, fmt.Errorf("middleware %q: %v", md.Descriptor.Name, err)
+		return nil, fmt.Errorf("In middleware %q: %v", md.Descriptor.Name, err)
 	}
 	opts, err := m.ConstructOptions()
 	if err != nil {

@@ -3,7 +3,9 @@ package middlewares
 import (
 	"fmt"
 
+	"tower.pro/renderer/helpers"
 	"tower.pro/renderer/options"
+	"tower.pro/renderer/template"
 )
 
 // Descriptor - Web route middleware descriptor.
@@ -24,18 +26,18 @@ type Middleware struct {
 	// Name - Name of middleware to construct.
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	// Options - Options used to construct middleware.
-	Options options.Options `json:"options,omitempty" yaml:"options,omitempty"`
+	Options template.Context `json:"options,omitempty" yaml:"options,omitempty"`
 	// Context - Like options but values are context keys.
-	Context options.Options `json:"context,omitempty" yaml:"context,omitempty"`
+	Context template.Context `json:"context,omitempty" yaml:"context,omitempty"`
 	// Template - Like options but values are templates.
-	Template options.Options `json:"template,omitempty" yaml:"template,omitempty"`
+	Template template.Context `json:"template,omitempty" yaml:"template,omitempty"`
 }
 
 // SetDefaults - Set options defaults.
 func (middleware *Middleware) SetDefaults(other *Middleware) {
-	middleware.Options = middleware.Options.SetDefaults(other.Options)
-	middleware.Context = middleware.Context.SetDefaults(other.Context)
-	middleware.Template = middleware.Template.SetDefaults(other.Template)
+	middleware.Options = helpers.WithDefaultsMap(middleware.Options, other.Options)
+	middleware.Context = helpers.WithDefaultsMap(middleware.Context, other.Context)
+	middleware.Template = helpers.WithDefaultsMap(middleware.Template, other.Template)
 }
 
 // Validate - Validates if options have proper types and if all required are not empty.
@@ -54,17 +56,17 @@ func (middleware *Middleware) Validate(opts []*options.Option) error {
 	}
 	for key := range middleware.Options {
 		if !options.Exists(opts, key) {
-			return fmt.Errorf("option %q was provided but doesnt exist", key)
+			return fmt.Errorf("option %q was set but doesn't exist.", key)
 		}
 	}
 	for key := range middleware.Context {
 		if !options.Exists(opts, key) {
-			return fmt.Errorf("option %q (context) was provided but doesnt exist", key)
+			return fmt.Errorf("option %q (context) was set but doesn't exist.", key)
 		}
 	}
 	for key := range middleware.Template {
 		if !options.Exists(opts, key) {
-			return fmt.Errorf("option %q (template) was provided but doesnt exist", key)
+			return fmt.Errorf("option %q (template) was set but doesn't exist.", key)
 		}
 	}
 	return nil

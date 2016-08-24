@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"sort"
 
-	"tower.pro/renderer/components"
-	"tower.pro/renderer/options"
 	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
+	"tower.pro/renderer/components"
+	"tower.pro/renderer/options"
 )
 
 var optMiddlewareName = &options.Option{

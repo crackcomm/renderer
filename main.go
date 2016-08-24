@@ -11,6 +11,8 @@ import (
 	"tower.pro/renderer/command"
 )
 
+var version string
+
 func main() {
 	defer glog.Flush()
 	flag.CommandLine.Parse([]string{"-logtostderr"})
@@ -18,7 +20,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "renderer"
 	app.Usage = "components compiler, renderer and command line tool with web interface"
-	app.Version = ""
+	app.Version = version
 	app.HideVersion = true
 	app.Commands = command.Commands
 	app.Flags = []cli.Flag{
